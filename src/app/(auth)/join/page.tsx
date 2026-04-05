@@ -34,7 +34,7 @@ export default function JoinGamePage() {
     // Look up the game session
     const { data: session, error: sessionError } = await supabase
       .from('game_sessions')
-      .select('*')
+      .select('id, status, settings')
       .eq('join_code', joinCode.toUpperCase())
       .single();
 
@@ -44,13 +44,15 @@ export default function JoinGamePage() {
       return;
     }
 
-    if (session.status === 'finished') {
+    const sessionData = session as { id: string; status: string; settings: { allow_late_join?: boolean } | null };
+
+    if (sessionData.status === 'finished') {
       setError('This game has already ended.');
       setLoading(false);
       return;
     }
 
-    if (session.status === 'active' && !session.settings?.allow_late_join) {
+    if (sessionData.status === 'active' && !sessionData.settings?.allow_late_join) {
       setError('This game is in progress and does not allow late joining.');
       setLoading(false);
       return;
@@ -67,7 +69,7 @@ export default function JoinGamePage() {
     const { data: existingPlayer } = await supabase
       .from('game_players')
       .select('id')
-      .eq('session_id', session.id)
+      .eq('session_id', sessionData.id)
       .eq('user_id', user.id)
       .single();
 
@@ -76,7 +78,7 @@ export default function JoinGamePage() {
       const { error: joinError } = await supabase
         .from('game_players')
         .insert({
-          session_id: session.id,
+          session_id: sessionData.id,
           user_id: user.id,
           nickname: profile?.display_name || profile?.username || 'Player',
           avatar_seed: Math.random().toString(36).substring(7),
