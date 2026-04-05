@@ -144,9 +144,9 @@ export class LocalPlayer {
     position.addInPlace(this.velocity.scale(deltaTime));
     this.character.setPosition(position);
 
-    // Simple ground collision
-    if (position.y < 0.75) {
-      position.y = 0.75;
+    // Simple ground collision (character feet are at position.y - 0.75)
+    if (position.y < 0.5) {
+      position.y = 0.5;
       this.character.setPosition(position);
       this.velocity.y = 0;
       this.isGrounded = true;

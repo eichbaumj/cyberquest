@@ -73,12 +73,12 @@ export class DFIRLabZone {
   }
 
   /**
-   * Simple floor with cyber grid
+   * Simple floor with cyber grid - light gray color
    */
   private buildFloor(): void {
     const { width, depth } = this.config;
 
-    // Main floor
+    // Main floor - light gray
     const floor = MeshBuilder.CreateGround(
       'floor',
       { width, height: depth, subdivisions: 1 },
@@ -87,8 +87,8 @@ export class DFIRLabZone {
     floor.parent = this.root;
 
     const floorMat = new StandardMaterial('floorMat', this.scene);
-    floorMat.diffuseColor = new Color3(0.02, 0.04, 0.06);
-    floorMat.specularColor = new Color3(0.05, 0.05, 0.05);
+    floorMat.diffuseColor = new Color3(0.25, 0.27, 0.3); // Light gray
+    floorMat.specularColor = new Color3(0.1, 0.1, 0.1);
     floor.material = floorMat;
     floor.receiveShadows = true;
 
@@ -99,8 +99,8 @@ export class DFIRLabZone {
   private createGridLines(width: number, depth: number): void {
     const gridMat = new StandardMaterial('gridMat', this.scene);
     gridMat.diffuseColor = new Color3(0, 0.6, 0.8);
-    gridMat.emissiveColor = new Color3(0, 0.2, 0.25);
-    gridMat.alpha = 0.4;
+    gridMat.emissiveColor = new Color3(0, 0.15, 0.2);
+    gridMat.alpha = 0.5;
 
     const spacing = 2;
     const halfW = width / 2;
@@ -194,44 +194,74 @@ export class DFIRLabZone {
   }
 
   /**
-   * Add workbenches and computers
+   * Add workbenches with computers
    */
   private buildFurniture(): void {
-    // Just a few workbenches for now
     const benchPositions = [
       new Vector3(-6, 0, 4),
       new Vector3(0, 0, 4),
       new Vector3(6, 0, 4),
     ];
 
+    // Materials
     const benchMat = new StandardMaterial('benchMat', this.scene);
-    benchMat.diffuseColor = new Color3(0.12, 0.1, 0.08);
+    benchMat.diffuseColor = new Color3(0.15, 0.12, 0.1); // Dark wood
+
+    const legMat = new StandardMaterial('legMat', this.scene);
+    legMat.diffuseColor = new Color3(0.1, 0.1, 0.1);
+
+    const monitorMat = new StandardMaterial('monitorMat', this.scene);
+    monitorMat.diffuseColor = new Color3(0.08, 0.08, 0.1);
+
+    const screenMat = new StandardMaterial('screenMat', this.scene);
+    screenMat.diffuseColor = new Color3(0.05, 0.1, 0.15);
+    screenMat.emissiveColor = new Color3(0, 0.15, 0.2);
+
+    const towerMat = new StandardMaterial('towerMat', this.scene);
+    towerMat.diffuseColor = new Color3(0.05, 0.05, 0.07);
+
+    const kbMat = new StandardMaterial('kbMat', this.scene);
+    kbMat.diffuseColor = new Color3(0.06, 0.06, 0.08);
+
+    const mouseMat = new StandardMaterial('mouseMat', this.scene);
+    mouseMat.diffuseColor = new Color3(0.05, 0.05, 0.05);
+
+    const laptopMat = new StandardMaterial('laptopMat', this.scene);
+    laptopMat.diffuseColor = new Color3(0.12, 0.12, 0.14);
 
     benchPositions.forEach((pos, i) => {
-      // Desktop
+      const deskY = 0.75;
+
+      // Desktop surface
       const desk = MeshBuilder.CreateBox(
         `desk_${i}`,
-        { width: 2, height: 0.1, depth: 1 },
+        { width: 2.2, height: 0.08, depth: 1.1 },
         this.scene
       );
-      desk.position = pos.add(new Vector3(0, 0.75, 0));
+      desk.position = pos.add(new Vector3(0, deskY, 0));
       desk.material = benchMat;
       desk.parent = this.root;
 
       // Legs
-      const legMat = new StandardMaterial(`legMat_${i}`, this.scene);
-      legMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
-
-      [[-0.8, 0.4], [0.8, 0.4], [-0.8, -0.4], [0.8, -0.4]].forEach(([lx, lz], li) => {
+      [[-0.95, 0.45], [0.95, 0.45], [-0.95, -0.45], [0.95, -0.45]].forEach(([lx, lz], li) => {
         const leg = MeshBuilder.CreateBox(
           `leg_${i}_${li}`,
-          { width: 0.08, height: 0.7, depth: 0.08 },
+          { width: 0.06, height: 0.7, depth: 0.06 },
           this.scene
         );
         leg.position = pos.add(new Vector3(lx, 0.35, lz));
         leg.material = legMat;
         leg.parent = this.root;
       });
+
+      // Computer equipment based on desk position
+      if (i === 1) {
+        // Middle desk: Laptop
+        this.createLaptop(pos.add(new Vector3(0, deskY + 0.04, 0)), laptopMat, screenMat, i);
+      } else {
+        // Left and right desks: Monitor + Desktop + Keyboard + Mouse
+        this.createDesktopComputer(pos.add(new Vector3(0, deskY + 0.04, 0)), monitorMat, screenMat, towerMat, kbMat, mouseMat, i);
+      }
     });
 
     // Locked door (for evidence room concept - place it on back wall)
@@ -244,6 +274,137 @@ export class DFIRLabZone {
       requiredCorrect: this.config.requiredCorrectForUnlock,
     });
     this.interactionManager.registerObject(this.evidenceDoor);
+  }
+
+  private createDesktopComputer(
+    basePos: Vector3,
+    monitorMat: StandardMaterial,
+    screenMat: StandardMaterial,
+    towerMat: StandardMaterial,
+    kbMat: StandardMaterial,
+    mouseMat: StandardMaterial,
+    index: number
+  ): void {
+    // Monitor stand
+    const stand = MeshBuilder.CreateBox(
+      `stand_${index}`,
+      { width: 0.15, height: 0.08, depth: 0.12 },
+      this.scene
+    );
+    stand.position = basePos.add(new Vector3(0, 0.04, -0.25));
+    stand.material = monitorMat;
+    stand.parent = this.root;
+
+    // Monitor neck
+    const neck = MeshBuilder.CreateBox(
+      `neck_${index}`,
+      { width: 0.06, height: 0.12, depth: 0.06 },
+      this.scene
+    );
+    neck.position = basePos.add(new Vector3(0, 0.14, -0.25));
+    neck.material = monitorMat;
+    neck.parent = this.root;
+
+    // Monitor frame
+    const monitor = MeshBuilder.CreateBox(
+      `monitor_${index}`,
+      { width: 0.6, height: 0.4, depth: 0.04 },
+      this.scene
+    );
+    monitor.position = basePos.add(new Vector3(0, 0.4, -0.28));
+    monitor.material = monitorMat;
+    monitor.parent = this.root;
+
+    // Screen
+    const screen = MeshBuilder.CreateBox(
+      `screen_${index}`,
+      { width: 0.54, height: 0.34, depth: 0.01 },
+      this.scene
+    );
+    screen.position = basePos.add(new Vector3(0, 0.4, -0.255));
+    screen.material = screenMat;
+    screen.parent = this.root;
+
+    // Desktop tower (to the left)
+    const tower = MeshBuilder.CreateBox(
+      `tower_${index}`,
+      { width: 0.18, height: 0.4, depth: 0.4 },
+      this.scene
+    );
+    tower.position = basePos.add(new Vector3(-0.7, 0.2, -0.1));
+    tower.material = towerMat;
+    tower.parent = this.root;
+
+    // Tower power LED
+    const ledMat = new StandardMaterial(`ledMat_${index}`, this.scene);
+    ledMat.emissiveColor = new Color3(0, 0.8, 0.4);
+    const led = MeshBuilder.CreateBox(
+      `led_${index}`,
+      { width: 0.02, height: 0.02, depth: 0.01 },
+      this.scene
+    );
+    led.position = basePos.add(new Vector3(-0.7, 0.32, 0.105));
+    led.material = ledMat;
+    led.parent = this.root;
+
+    // Keyboard
+    const keyboard = MeshBuilder.CreateBox(
+      `keyboard_${index}`,
+      { width: 0.4, height: 0.02, depth: 0.15 },
+      this.scene
+    );
+    keyboard.position = basePos.add(new Vector3(0, 0.01, 0.2));
+    keyboard.material = kbMat;
+    keyboard.parent = this.root;
+
+    // Mouse (to the right of keyboard)
+    const mouse = MeshBuilder.CreateBox(
+      `mouse_${index}`,
+      { width: 0.06, height: 0.02, depth: 0.1 },
+      this.scene
+    );
+    mouse.position = basePos.add(new Vector3(0.35, 0.01, 0.2));
+    mouse.material = mouseMat;
+    mouse.parent = this.root;
+  }
+
+  private createLaptop(
+    basePos: Vector3,
+    laptopMat: StandardMaterial,
+    screenMat: StandardMaterial,
+    index: number
+  ): void {
+    // Laptop base (keyboard part)
+    const base = MeshBuilder.CreateBox(
+      `laptopBase_${index}`,
+      { width: 0.35, height: 0.02, depth: 0.25 },
+      this.scene
+    );
+    base.position = basePos.add(new Vector3(0, 0.01, 0.1));
+    base.material = laptopMat;
+    base.parent = this.root;
+
+    // Laptop screen (tilted back)
+    const screenFrame = MeshBuilder.CreateBox(
+      `laptopScreen_${index}`,
+      { width: 0.35, height: 0.24, depth: 0.015 },
+      this.scene
+    );
+    screenFrame.position = basePos.add(new Vector3(0, 0.13, -0.04));
+    screenFrame.rotation.x = -0.3; // Tilt back ~17 degrees
+    screenFrame.material = laptopMat;
+    screenFrame.parent = this.root;
+
+    // Laptop screen display
+    const screenDisplay = MeshBuilder.CreateBox(
+      `laptopDisplay_${index}`,
+      { width: 0.31, height: 0.2, depth: 0.005 },
+      this.scene
+    );
+    screenDisplay.position = basePos.add(new Vector3(0, 0.13, -0.03));
+    screenDisplay.rotation.x = -0.3;
+    screenDisplay.material = screenMat;
+    screenDisplay.parent = this.root;
   }
 
   private setupLighting(): void {
@@ -298,7 +459,7 @@ export class DFIRLabZone {
   }
 
   public getSpawnPoint(): Vector3 {
-    return new Vector3(0, 1, 5);
+    return new Vector3(0, 0.5, 5);
   }
 
   public getBounds(): { minX: number; maxX: number; minZ: number; maxZ: number } {
