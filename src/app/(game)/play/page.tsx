@@ -35,6 +35,7 @@ function GameContent() {
   const supabaseRef = useRef(createClient());
   const lastUpdateRef = useRef(0);
   const positionChannelRef = useRef<any>(null);
+  const nicknameRef = useRef<string>('Player');
 
   // Get current user and set up realtime
   useEffect(() => {
@@ -54,6 +55,7 @@ function GameContent() {
         .single() as { data: any };
 
       const nickname = profile?.display_name || profile?.username || 'Player';
+      nicknameRef.current = nickname;
 
       // Create a presence channel for player positions
       const channel = supabase.channel(`game-${sessionId}`, {
@@ -64,26 +66,30 @@ function GameContent() {
         },
       });
 
+      const syncPresence = () => {
+        const state = channel.presenceState();
+        const players: RemotePlayerData[] = [];
+
+        Object.entries(state).forEach(([odId, presences]) => {
+          const presence = (presences as any[])[0];
+          if (presence && presence.user_id !== user.id) {
+            players.push({
+              id: presence.user_id,
+              nickname: presence.nickname || 'Player',
+              position: presence.position || { x: 0, y: 1, z: 0 },
+              rotation: presence.rotation || 0,
+            });
+          }
+        });
+
+        setRemotePlayers(players);
+        setPlayerCount(Object.keys(state).length);
+      };
+
       channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
-          const players: RemotePlayerData[] = [];
-
-          Object.entries(state).forEach(([odId, presences]) => {
-            const presence = (presences as any[])[0];
-            if (presence && presence.user_id !== user.id) {
-              players.push({
-                id: presence.user_id,
-                nickname: presence.nickname || 'Player',
-                position: presence.position || { x: 0, y: 1, z: 0 },
-                rotation: presence.rotation || 0,
-              });
-            }
-          });
-
-          setRemotePlayers(players);
-          setPlayerCount(Object.keys(state).length);
-        })
+        .on('presence', { event: 'sync' }, syncPresence)
+        .on('presence', { event: 'join' }, syncPresence)
+        .on('presence', { event: 'leave' }, syncPresence)
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             // Track our presence with initial position
@@ -120,6 +126,7 @@ function GameContent() {
     if (positionChannelRef.current && userId) {
       positionChannelRef.current.track({
         user_id: userId,
+        nickname: nicknameRef.current,
         position,
         rotation,
         online_at: new Date().toISOString(),
