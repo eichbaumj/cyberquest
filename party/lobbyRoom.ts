@@ -94,12 +94,16 @@ export default class LobbyRoom implements Party.Server {
   // Clean up stale games periodically
   async onAlarm() {
     const staleThreshold = Date.now() - 3600000; // 1 hour
-    for (const [id, game] of this.games) {
+    const idsToDelete: string[] = [];
+    this.games.forEach((game, id) => {
       if (game.createdAt < staleThreshold) {
-        this.games.delete(id);
-        this.broadcast({ type: 'GAME_REMOVED', gameId: id });
+        idsToDelete.push(id);
       }
-    }
+    });
+    idsToDelete.forEach((id) => {
+      this.games.delete(id);
+      this.broadcast({ type: 'GAME_REMOVED', gameId: id });
+    });
 
     // Schedule next cleanup
     this.room.storage.setAlarm(Date.now() + 300000); // 5 minutes
@@ -107,9 +111,10 @@ export default class LobbyRoom implements Party.Server {
 
   private broadcast(message: ServerMessage) {
     const messageStr = JSON.stringify(message);
-    for (const connection of this.room.getConnections()) {
+    const connections = Array.from(this.room.getConnections());
+    connections.forEach((connection) => {
       connection.send(messageStr);
-    }
+    });
   }
 
   private sendToConnection(connection: Party.Connection, message: ServerMessage) {
