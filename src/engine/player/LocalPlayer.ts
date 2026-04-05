@@ -57,12 +57,12 @@ export class LocalPlayer {
     this.scene = options.scene;
     this.camera = options.camera;
     this.onMove = options.onMove;
-    // Default world bounds (DFIR Lab is 40x30)
+    // Default world bounds (DFIR Lab is 30x20)
     this.worldBounds = options.worldBounds || {
-      minX: -19,
-      maxX: 19,
-      minZ: -14,
-      maxZ: 14,
+      minX: -14,
+      maxX: 14,
+      minZ: -9,
+      maxZ: 9,
     };
 
     // Create voxel character with specified or first color

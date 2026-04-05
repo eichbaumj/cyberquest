@@ -2,26 +2,29 @@ import {
   Scene,
   Vector3,
   TransformNode,
-  HemisphericLight,
+  MeshBuilder,
+  StandardMaterial,
   Color3,
-  PointLight,
+  HemisphericLight,
+  Mesh,
 } from '@babylonjs/core';
-import { VoxelBuilder } from '../VoxelBuilder';
 import { InteractionManager } from '../../objects/InteractionManager';
-import { InteractiveObject, Question } from '../../objects/InteractiveObject';
+import { Question } from '../../objects/InteractiveObject';
 import { ComputerTerminal } from '../../objects/types/ComputerTerminal';
 import { LockedDoor } from '../../objects/types/LockedDoor';
 
 export interface DFIRLabConfig {
   width: number;
   depth: number;
+  wallHeight: number;
   evidenceRoomCode: string;
   requiredCorrectForUnlock: number;
 }
 
 const DEFAULT_CONFIG: DFIRLabConfig = {
-  width: 40,
-  depth: 30,
+  width: 30,
+  depth: 20,
+  wallHeight: 5,
   evidenceRoomCode: '7734',
   requiredCorrectForUnlock: 3,
 };
@@ -30,21 +33,14 @@ export class DFIRLabZone {
   private scene: Scene;
   private config: DFIRLabConfig;
   private root: TransformNode;
-  private voxelBuilder: VoxelBuilder;
   private interactionManager: InteractionManager;
 
   // Interactive objects
   private terminals: ComputerTerminal[] = [];
   private evidenceDoor: LockedDoor | null = null;
 
-  // Spawn positions for dynamic objects
-  private terminalSpawnPositions: Vector3[] = [
-    new Vector3(-8, 0.8, 5),
-    new Vector3(0, 0.8, 5),
-    new Vector3(8, 0.8, 5),
-    new Vector3(-4, 0.8, -3),
-    new Vector3(4, 0.8, -3),
-  ];
+  // World bounds for collision
+  public readonly bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
 
   constructor(
     scene: Scene,
@@ -54,314 +50,245 @@ export class DFIRLabZone {
     this.scene = scene;
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.interactionManager = interactionManager;
-    this.voxelBuilder = new VoxelBuilder(scene);
-
     this.root = new TransformNode('dfir_lab', scene);
+
+    // Set bounds based on config (walls are on the inside of these bounds)
+    const halfW = this.config.width / 2;
+    const halfD = this.config.depth / 2;
+    this.bounds = {
+      minX: -halfW + 1,  // +1 to keep player away from wall
+      maxX: halfW - 1,
+      minZ: -halfD + 1,
+      maxZ: halfD - 1,
+    };
 
     this.build();
   }
 
-  /**
-   * Build the entire lab environment
-   */
   private build(): void {
     this.buildFloor();
     this.buildWalls();
-    this.buildCeiling();
-    this.buildMainLab();
-    this.buildEvidenceRoom();
+    this.buildFurniture();
     this.setupLighting();
   }
 
   /**
-   * Build the floor with grid
+   * Simple floor with cyber grid
    */
   private buildFloor(): void {
-    const floor = this.voxelBuilder.createFloor(
-      'main',
-      new Vector3(0, 0, 0),
-      this.config.width,
-      this.config.depth,
-      true
+    const { width, depth } = this.config;
+
+    // Main floor
+    const floor = MeshBuilder.CreateGround(
+      'floor',
+      { width, height: depth, subdivisions: 1 },
+      this.scene
     );
     floor.parent = this.root;
+
+    const floorMat = new StandardMaterial('floorMat', this.scene);
+    floorMat.diffuseColor = new Color3(0.02, 0.04, 0.06);
+    floorMat.specularColor = new Color3(0.05, 0.05, 0.05);
+    floor.material = floorMat;
+    floor.receiveShadows = true;
+
+    // Grid lines
+    this.createGridLines(width, depth);
+  }
+
+  private createGridLines(width: number, depth: number): void {
+    const gridMat = new StandardMaterial('gridMat', this.scene);
+    gridMat.diffuseColor = new Color3(0, 0.6, 0.8);
+    gridMat.emissiveColor = new Color3(0, 0.2, 0.25);
+    gridMat.alpha = 0.4;
+
+    const spacing = 2;
+    const halfW = width / 2;
+    const halfD = depth / 2;
+
+    // X lines
+    for (let x = -halfW; x <= halfW; x += spacing) {
+      const line = MeshBuilder.CreateBox(
+        `gridX_${x}`,
+        { width: 0.02, height: 0.01, depth: depth },
+        this.scene
+      );
+      line.position = new Vector3(x, 0.01, 0);
+      line.material = gridMat;
+      line.parent = this.root;
+    }
+
+    // Z lines
+    for (let z = -halfD; z <= halfD; z += spacing) {
+      const line = MeshBuilder.CreateBox(
+        `gridZ_${z}`,
+        { width: width, height: 0.01, depth: 0.02 },
+        this.scene
+      );
+      line.position = new Vector3(0, 0.01, z);
+      line.material = gridMat;
+      line.parent = this.root;
+    }
   }
 
   /**
-   * Build outer walls
+   * Four simple walls around the floor
    */
   private buildWalls(): void {
-    const w = this.config.width / 2;
-    const d = this.config.depth / 2;
-    const wallHeight = 4;
+    const { width, depth, wallHeight } = this.config;
+    const halfW = width / 2;
+    const halfD = depth / 2;
+    const thickness = 0.5;
 
-    // North wall (back)
-    const northWall = this.voxelBuilder.createWall(
-      'north',
-      new Vector3(-w, 0, -d),
-      new Vector3(w, 0, -d),
-      wallHeight
-    );
-    northWall.parent = this.root;
+    const wallMat = new StandardMaterial('wallMat', this.scene);
+    wallMat.diffuseColor = new Color3(0.06, 0.08, 0.1);
+    wallMat.specularColor = new Color3(0.1, 0.1, 0.1);
 
-    // South wall (front) - with gap for entrance
-    const southWallLeft = this.voxelBuilder.createWall(
-      'south_left',
-      new Vector3(-w, 0, d),
-      new Vector3(-3, 0, d),
-      wallHeight
-    );
-    southWallLeft.parent = this.root;
+    const accentMat = new StandardMaterial('accentMat', this.scene);
+    accentMat.diffuseColor = new Color3(0, 0.9, 1);
+    accentMat.emissiveColor = new Color3(0, 0.3, 0.35);
 
-    const southWallRight = this.voxelBuilder.createWall(
-      'south_right',
-      new Vector3(3, 0, d),
-      new Vector3(w, 0, d),
-      wallHeight
-    );
-    southWallRight.parent = this.root;
+    // North wall (back, -Z)
+    this.createWall('north', new Vector3(0, wallHeight / 2, -halfD), width, wallHeight, thickness, wallMat, accentMat);
 
-    // West wall (left)
-    const westWall = this.voxelBuilder.createWall(
-      'west',
-      new Vector3(-w, 0, -d),
-      new Vector3(-w, 0, d),
-      wallHeight
-    );
-    westWall.parent = this.root;
+    // South wall (front, +Z)
+    this.createWall('south', new Vector3(0, wallHeight / 2, halfD), width, wallHeight, thickness, wallMat, accentMat);
 
-    // East wall (right) - full wall, evidence room is inside
-    const eastWall = this.voxelBuilder.createWall(
-      'east',
-      new Vector3(w, 0, -d),
-      new Vector3(w, 0, d),
-      wallHeight
+    // West wall (left, -X)
+    this.createWall('west', new Vector3(-halfW, wallHeight / 2, 0), thickness, wallHeight, depth, wallMat, accentMat);
+
+    // East wall (right, +X)
+    this.createWall('east', new Vector3(halfW, wallHeight / 2, 0), thickness, wallHeight, depth, wallMat, accentMat);
+  }
+
+  private createWall(
+    name: string,
+    position: Vector3,
+    width: number,
+    height: number,
+    depth: number,
+    wallMat: StandardMaterial,
+    accentMat: StandardMaterial
+  ): Mesh {
+    // Main wall
+    const wall = MeshBuilder.CreateBox(
+      `wall_${name}`,
+      { width, height, depth },
+      this.scene
     );
-    eastWall.parent = this.root;
+    wall.position = position;
+    wall.material = wallMat;
+    wall.parent = this.root;
+
+    // Accent strip at top
+    const accent = MeshBuilder.CreateBox(
+      `accent_${name}`,
+      { width: width + 0.1, height: 0.15, depth: depth + 0.1 },
+      this.scene
+    );
+    accent.position = position.add(new Vector3(0, height / 2 - 0.1, 0));
+    accent.material = accentMat;
+    accent.parent = this.root;
+
+    return wall;
   }
 
   /**
-   * Build ceiling - disabled for now to avoid visible lights from above
+   * Add workbenches and computers
    */
-  private buildCeiling(): void {
-    // Ceiling disabled - the lights were too visible from camera angles
-    // Can be re-enabled with better lighting solution later
-  }
-
-  /**
-   * Build main lab area with workbenches
-   */
-  private buildMainLab(): void {
-    // Workbenches with computers
-    const workbenchPositions = [
-      { pos: new Vector3(-8, 0, 5), rot: 0 },
-      { pos: new Vector3(0, 0, 5), rot: 0 },
-      { pos: new Vector3(8, 0, 5), rot: 0 },
+  private buildFurniture(): void {
+    // Just a few workbenches for now
+    const benchPositions = [
+      new Vector3(-6, 0, 4),
+      new Vector3(0, 0, 4),
+      new Vector3(6, 0, 4),
     ];
 
-    workbenchPositions.forEach((wb, i) => {
-      const workbench = this.voxelBuilder.createWorkbench(
-        `wb_${i}`,
-        wb.pos,
-        wb.rot
-      );
-      workbench.parent = this.root;
+    const benchMat = new StandardMaterial('benchMat', this.scene);
+    benchMat.diffuseColor = new Color3(0.12, 0.1, 0.08);
 
-      // Add computer on workbench
-      const computer = this.voxelBuilder.createComputer(
-        `computer_${i}`,
-        wb.pos.add(new Vector3(0, 0.8, 0)),
-        wb.rot
+    benchPositions.forEach((pos, i) => {
+      // Desktop
+      const desk = MeshBuilder.CreateBox(
+        `desk_${i}`,
+        { width: 2, height: 0.1, depth: 1 },
+        this.scene
       );
-      computer.parent = this.root;
+      desk.position = pos.add(new Vector3(0, 0.75, 0));
+      desk.material = benchMat;
+      desk.parent = this.root;
+
+      // Legs
+      const legMat = new StandardMaterial(`legMat_${i}`, this.scene);
+      legMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
+
+      [[-0.8, 0.4], [0.8, 0.4], [-0.8, -0.4], [0.8, -0.4]].forEach(([lx, lz], li) => {
+        const leg = MeshBuilder.CreateBox(
+          `leg_${i}_${li}`,
+          { width: 0.08, height: 0.7, depth: 0.08 },
+          this.scene
+        );
+        leg.position = pos.add(new Vector3(lx, 0.35, lz));
+        leg.material = legMat;
+        leg.parent = this.root;
+      });
     });
 
-    // Additional workbenches for phones/evidence
-    const sideWorkbenches = [
-      { pos: new Vector3(-4, 0, -3), rot: Math.PI },
-      { pos: new Vector3(4, 0, -3), rot: Math.PI },
-    ];
-
-    sideWorkbenches.forEach((wb, i) => {
-      const workbench = this.voxelBuilder.createWorkbench(
-        `side_wb_${i}`,
-        wb.pos,
-        wb.rot
-      );
-      workbench.parent = this.root;
-    });
-
-    // Whiteboard on north wall
-    const whiteboard = this.voxelBuilder.createWhiteboard(
-      'main',
-      new Vector3(0, 1.8, -this.config.depth / 2 + 0.3),
-      0
-    );
-    whiteboard.parent = this.root;
-  }
-
-  /**
-   * Build evidence room with locked door
-   */
-  private buildEvidenceRoom(): void {
-    const w = this.config.width / 2;
-    const roomWidth = 10;
-    const roomDepth = 10;
-    const wallHeight = 4;
-
-    // Evidence room is in the bottom-right corner
-    const roomX = w - roomWidth / 2;
-    const roomZ = this.config.depth / 2 - roomDepth / 2;
-
-    // Evidence room walls
-    // West wall (separating from main lab)
-    const erWestWall = this.voxelBuilder.createWall(
-      'er_west',
-      new Vector3(w - roomWidth, 0, roomZ - roomDepth / 2),
-      new Vector3(w - roomWidth, 0, roomZ + roomDepth / 2 - 2),
-      wallHeight
-    );
-    erWestWall.parent = this.root;
-
-    // Door position on west wall
-    const doorPos = new Vector3(w - roomWidth, 0, roomZ + roomDepth / 2 - 3);
-
-    // Continue wall after door
-    const erWestWall2 = this.voxelBuilder.createWall(
-      'er_west2',
-      new Vector3(w - roomWidth, 0, roomZ + roomDepth / 2),
-      new Vector3(w - roomWidth, 0, this.config.depth / 2),
-      wallHeight
-    );
-    erWestWall2.parent = this.root;
-
-    // South wall of evidence room
-    const erSouthWall = this.voxelBuilder.createWall(
-      'er_south',
-      new Vector3(w - roomWidth, 0, this.config.depth / 2),
-      new Vector3(w, 0, this.config.depth / 2),
-      wallHeight
-    );
-    erSouthWall.parent = this.root;
-
-    // East wall of evidence room
-    const erEastWall = this.voxelBuilder.createWall(
-      'er_east',
-      new Vector3(w, 0, roomZ - roomDepth / 2),
-      new Vector3(w, 0, this.config.depth / 2),
-      wallHeight
-    );
-    erEastWall.parent = this.root;
-
-    // North wall of evidence room
-    const erNorthWall = this.voxelBuilder.createWall(
-      'er_north',
-      new Vector3(w - roomWidth, 0, roomZ - roomDepth / 2),
-      new Vector3(w, 0, roomZ - roomDepth / 2),
-      wallHeight
-    );
-    erNorthWall.parent = this.root;
-
-    // Create locked door
+    // Locked door (for evidence room concept - place it on back wall)
     this.evidenceDoor = new LockedDoor({
       id: 'evidence_door',
       scene: this.scene,
-      position: doorPos,
-      rotation: Math.PI / 2, // Facing into main lab
+      position: new Vector3(8, 0, -this.config.depth / 2 + 0.5),
+      rotation: 0,
       unlockCode: this.config.evidenceRoomCode,
       requiredCorrect: this.config.requiredCorrectForUnlock,
     });
     this.interactionManager.registerObject(this.evidenceDoor);
-
-    // Evidence room contents - safe/locker
-    const safeMat = this.voxelBuilder.getMaterial('metal');
-    // We could add a safe mesh here for visual interest
   }
 
-  /**
-   * Setup additional lighting for the lab
-   */
   private setupLighting(): void {
-    // Main lab ambient boost
-    const labAmbient = new HemisphericLight(
-      'labAmbient',
-      new Vector3(0, 1, 0),
-      this.scene
-    );
-    labAmbient.intensity = 0.3;
-    labAmbient.diffuse = new Color3(0.8, 0.85, 1);
-    labAmbient.groundColor = new Color3(0.1, 0.15, 0.2);
-
-    // Accent lights near workbenches
-    const accentPositions = [
-      new Vector3(-8, 3, 5),
-      new Vector3(0, 3, 5),
-      new Vector3(8, 3, 5),
-    ];
-
-    accentPositions.forEach((pos, i) => {
-      const light = new PointLight(`accent_${i}`, pos, this.scene);
-      light.intensity = 0.3;
-      light.diffuse = new Color3(0, 0.8, 1);
-      light.range = 8;
-    });
-
-    // Evidence room red accent (when locked)
-    const erLight = new PointLight(
-      'er_accent',
-      new Vector3(this.config.width / 2 - 5, 3, this.config.depth / 2 - 5),
-      this.scene
-    );
-    erLight.intensity = 0.2;
-    erLight.diffuse = new Color3(1, 0.2, 0.3);
-    erLight.range = 10;
+    const ambient = new HemisphericLight('labLight', new Vector3(0, 1, 0), this.scene);
+    ambient.intensity = 0.4;
+    ambient.diffuse = new Color3(0.7, 0.8, 1);
+    ambient.groundColor = new Color3(0.1, 0.1, 0.15);
   }
 
   /**
-   * Spawn interactive terminal objects based on questions
+   * Spawn terminals based on questions
    */
   public spawnTerminalsForQuestions(questions: Question[]): void {
-    // Filter for terminal-appropriate questions
-    const terminalQuestions = questions.filter(
-      (q) => q.type === 'terminal_command' || q.type === 'multiple_choice'
-    );
+    const positions = [
+      new Vector3(-6, 0.85, 4),
+      new Vector3(0, 0.85, 4),
+      new Vector3(6, 0.85, 4),
+    ];
 
-    // Spawn up to available positions
-    const count = Math.min(terminalQuestions.length, this.terminalSpawnPositions.length);
+    const count = Math.min(questions.length, positions.length);
 
     for (let i = 0; i < count; i++) {
       const terminal = new ComputerTerminal({
         id: `terminal_${i}`,
         scene: this.scene,
-        position: this.terminalSpawnPositions[i],
+        position: positions[i],
         rotation: 0,
       });
 
-      terminal.bindQuestion(terminalQuestions[i]);
-      terminal.setScreenText(`> CHALLENGE ${i + 1}\n> TYPE: ${terminalQuestions[i].type.toUpperCase()}\n\nPress E to begin`);
+      terminal.bindQuestion(questions[i]);
+      terminal.setScreenText(`> CHALLENGE ${i + 1}\n> READY`);
 
       this.terminals.push(terminal);
       this.interactionManager.registerObject(terminal);
     }
   }
 
-  /**
-   * Get all terminals
-   */
   public getTerminals(): ComputerTerminal[] {
     return this.terminals;
   }
 
-  /**
-   * Get the evidence door
-   */
   public getEvidenceDoor(): LockedDoor | null {
     return this.evidenceDoor;
   }
 
-  /**
-   * Check and unlock evidence room if enough correct answers
-   */
   public checkUnlock(correctCount: number): boolean {
     if (this.evidenceDoor && correctCount >= this.config.requiredCorrectForUnlock) {
       this.evidenceDoor.unlock();
@@ -370,16 +297,14 @@ export class DFIRLabZone {
     return false;
   }
 
-  /**
-   * Get spawn point for players
-   */
   public getSpawnPoint(): Vector3 {
-    return new Vector3(0, 1, this.config.depth / 2 - 3);
+    return new Vector3(0, 1, 5);
   }
 
-  /**
-   * Cleanup
-   */
+  public getBounds(): { minX: number; maxX: number; minZ: number; maxZ: number } {
+    return this.bounds;
+  }
+
   public dispose(): void {
     this.terminals.forEach((t) => {
       this.interactionManager.unregisterObject(t.getId());
