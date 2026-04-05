@@ -130,27 +130,22 @@ export class DFIRLabZone {
     );
     westWall.parent = this.root;
 
-    // East wall (right) - partial, evidence room has its own walls
-    const eastWallMain = this.voxelBuilder.createWall(
-      'east_main',
+    // East wall (right) - full wall, evidence room is inside
+    const eastWall = this.voxelBuilder.createWall(
+      'east',
       new Vector3(w, 0, -d),
-      new Vector3(w, 0, 0),
+      new Vector3(w, 0, d),
       wallHeight
     );
-    eastWallMain.parent = this.root;
+    eastWall.parent = this.root;
   }
 
   /**
-   * Build ceiling with lights
+   * Build ceiling - disabled for now to avoid visible lights from above
    */
   private buildCeiling(): void {
-    const ceiling = this.voxelBuilder.createCeiling(
-      'main',
-      new Vector3(0, 0, 0),
-      this.config.width - 10, // Slightly smaller than floor
-      this.config.depth - 5
-    );
-    ceiling.parent = this.root;
+    // Ceiling disabled - the lights were too visible from camera angles
+    // Can be re-enabled with better lighting solution later
   }
 
   /**

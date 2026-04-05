@@ -72,7 +72,7 @@ export class GameEngine {
       'camera',
       Math.PI / 2,  // Alpha (horizontal rotation)
       Math.PI / 3,  // Beta (vertical angle)
-      10,           // Radius (distance from target)
+      6,            // Radius (distance from target) - closer to player
       new Vector3(0, 1, 0), // Target position
       this.scene
     );
@@ -86,11 +86,11 @@ export class GameEngine {
     // Re-add with much lower sensitivity for smooth control
     camera.inputs.addMouseWheel();
 
-    // Camera limits
-    camera.lowerRadiusLimit = 3;
-    camera.upperRadiusLimit = 20;
-    camera.lowerBetaLimit = 0.1;
-    camera.upperBetaLimit = Math.PI / 2 - 0.1;
+    // Camera limits - keep camera closer and prevent looking straight down
+    camera.lowerRadiusLimit = 4;
+    camera.upperRadiusLimit = 12;
+    camera.lowerBetaLimit = 0.3;  // Prevent looking too high (would see ceiling lights)
+    camera.upperBetaLimit = Math.PI / 2.5;  // Prevent looking straight down
     camera.wheelPrecision = 50;
     camera.panningSensibility = 0; // Disable panning
 

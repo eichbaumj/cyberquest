@@ -13,11 +13,19 @@ export interface PlayerState {
   animState: AnimationState;
 }
 
+export interface WorldBounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
 export interface PlayerOptions {
   scene: Scene;
   camera: ArcRotateCamera;
   startPosition?: Vector3;
   colorIndex?: number;
+  worldBounds?: WorldBounds;
   onMove?: (position: Vector3, rotation: number, animState: AnimationState) => void;
 }
 
@@ -26,6 +34,7 @@ export class LocalPlayer {
   private camera: ArcRotateCamera;
   private character: VoxelCharacter;
   private onMove?: (position: Vector3, rotation: number, animState: AnimationState) => void;
+  private worldBounds: WorldBounds;
 
   // Movement state
   private keys: Map<string, boolean> = new Map();
@@ -39,6 +48,7 @@ export class LocalPlayer {
   private readonly JUMP_FORCE = 8;
   private readonly GRAVITY = -20;
   private readonly FRICTION = 10;
+  private readonly PLAYER_RADIUS = 0.5; // Collision radius
 
   // Camera rotation settings
   private readonly ROTATION_SPEED = 2;
@@ -47,6 +57,13 @@ export class LocalPlayer {
     this.scene = options.scene;
     this.camera = options.camera;
     this.onMove = options.onMove;
+    // Default world bounds (DFIR Lab is 40x30)
+    this.worldBounds = options.worldBounds || {
+      minX: -19,
+      maxX: 19,
+      minZ: -14,
+      maxZ: 14,
+    };
 
     // Create voxel character with specified or first color
     const colors = options.colorIndex !== undefined
@@ -133,6 +150,31 @@ export class LocalPlayer {
       this.character.setPosition(position);
       this.velocity.y = 0;
       this.isGrounded = true;
+    }
+
+    // World boundary collision
+    const r = this.PLAYER_RADIUS;
+    let clamped = false;
+    if (position.x < this.worldBounds.minX + r) {
+      position.x = this.worldBounds.minX + r;
+      this.velocity.x = 0;
+      clamped = true;
+    } else if (position.x > this.worldBounds.maxX - r) {
+      position.x = this.worldBounds.maxX - r;
+      this.velocity.x = 0;
+      clamped = true;
+    }
+    if (position.z < this.worldBounds.minZ + r) {
+      position.z = this.worldBounds.minZ + r;
+      this.velocity.z = 0;
+      clamped = true;
+    } else if (position.z > this.worldBounds.maxZ - r) {
+      position.z = this.worldBounds.maxZ - r;
+      this.velocity.z = 0;
+      clamped = true;
+    }
+    if (clamped) {
+      this.character.setPosition(position);
     }
 
     // Rotate character to face movement direction

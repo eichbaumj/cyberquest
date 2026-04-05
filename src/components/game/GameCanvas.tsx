@@ -87,11 +87,18 @@ export function GameCanvas({
       // Get spawn point from zone
       const spawnPoint = zoneRef.current.getSpawnPoint();
 
-      // Create local player at zone spawn point
+      // Create local player at zone spawn point with world bounds
+      // DFIR Lab is 40x30, so bounds are -20 to 20 on X, -15 to 15 on Z
       localPlayerRef.current = new LocalPlayer({
         scene: scene,
         camera: engine.getCamera(),
         startPosition: spawnPoint,
+        worldBounds: {
+          minX: -19,
+          maxX: 19,
+          minZ: -14,
+          maxZ: 14,
+        },
         onMove: (position: Vector3, rotation: number, animState: AnimationState) => {
           onPlayerMove?.(
             { x: position.x, y: position.y, z: position.z },

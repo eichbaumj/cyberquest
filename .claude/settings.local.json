@@ -42,7 +42,8 @@
       "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix TypeScript ''never'' type error in InteractionManager\n\nAssign closestObject to new variable before null check to help TypeScript narrowing.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\")",
       "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix TypeScript never type with explicit cast\")",
       "Bash(git -C \"C:\\Users\\james.a\\study_game\" add -A)",
-      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix CanvasRenderingContext2D type casts\")"
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix CanvasRenderingContext2D type casts\")",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"$(cat <<''EOF''\nFix camera, collisions, and world boundaries\n\nCamera:\n- Reduce default radius from 10 to 6 (closer to player)\n- Limit radius to 4-12 range\n- Restrict beta angle to prevent seeing ceiling lights\n\nPlayer Collision:\n- Add WorldBounds interface for boundary constraints\n- Add PLAYER_RADIUS for collision detection\n- Clamp player position within world bounds each frame\n\nDFIR Lab Zone:\n- Disable ceiling (lights were too visible from above)\n- Complete east wall enclosure\n- Pass world bounds to LocalPlayer\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
     ]
   }
 }
