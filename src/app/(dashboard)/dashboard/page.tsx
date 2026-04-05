@@ -10,13 +10,13 @@ export default async function DashboardPage() {
     .from('profiles')
     .select('*')
     .eq('id', user!.id)
-    .single();
+    .single() as { data: any };
 
   const { data: stats } = await supabase
     .from('player_stats')
     .select('*')
     .eq('user_id', user!.id)
-    .single();
+    .single() as { data: any };
 
   const isInstructor = profile?.role === 'instructor' || profile?.role === 'admin';
 

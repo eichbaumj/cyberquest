@@ -13,7 +13,7 @@ export default async function SessionsPage() {
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single();
+    .single() as { data: any };
 
   if (profile?.role !== 'instructor' && profile?.role !== 'admin') {
     redirect('/dashboard');

@@ -46,7 +46,7 @@ export default function QuestionBankPage() {
       .from('question_banks')
       .select('*')
       .eq('id', bankId)
-      .single();
+      .single() as { data: any };
 
     if (bankData) {
       setBank(bankData);

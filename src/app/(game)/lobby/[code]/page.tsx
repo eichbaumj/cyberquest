@@ -43,7 +43,7 @@ export default function LobbyPage() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .single() as { data: any };
 
       if (profile) {
         setNickname(profile.display_name || profile.username);
@@ -57,7 +57,7 @@ export default function LobbyPage() {
           host:profiles!game_sessions_host_id_fkey(username, display_name)
         `)
         .eq('join_code', joinCode.toUpperCase())
-        .single();
+        .single() as { data: any; error: any };
 
       if (sessionError || !sessionData) {
         setError('Game session not found');

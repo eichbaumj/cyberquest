@@ -20,7 +20,7 @@ export default async function DashboardLayout({
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .single() as { data: any };
 
   if (!profile) {
     redirect('/login');
