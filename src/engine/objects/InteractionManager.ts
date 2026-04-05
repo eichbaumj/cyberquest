@@ -120,7 +120,7 @@ export class InteractionManager {
     });
 
     // Update nearby states
-    const newNearby = closestObject;
+    const newNearby: InteractiveObject | null = closestObject;
 
     if (newNearby !== this.currentNearbyObject) {
       // Exit previous
@@ -129,11 +129,11 @@ export class InteractionManager {
       }
 
       // Enter new
-      if (newNearby !== null) {
-        newNearby.setNearby(true);
+      if (newNearby) {
+        (newNearby as InteractiveObject).setNearby(true);
         this.onProximityChange.notifyObservers({
           object: newNearby,
-          prompt: newNearby.getInteractionPrompt(),
+          prompt: (newNearby as InteractiveObject).getInteractionPrompt(),
         });
       } else {
         this.onProximityChange.notifyObservers({ object: null, prompt: null });
