@@ -125,7 +125,7 @@ export default function NewSessionPage() {
         },
       } as any)
       .select()
-      .single();
+      .single() as { data: any; error: any };
 
     if (insertError) {
       setError(insertError.message);

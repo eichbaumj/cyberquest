@@ -41,7 +41,7 @@ export default function NewQuestionBankPage() {
         is_public: formData.isPublic,
       } as any)
       .select()
-      .single();
+      .single() as { data: any; error: any };
 
     if (insertError) {
       setError(insertError.message);
