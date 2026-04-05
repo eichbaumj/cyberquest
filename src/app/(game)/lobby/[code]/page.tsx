@@ -199,9 +199,9 @@ export default function LobbyPage() {
     const supabase = createClient();
 
     // Update session status
-    await supabase
-      .from('game_sessions')
-      .update({ status: 'starting', started_at: new Date().toISOString() } as any)
+    await (supabase
+      .from('game_sessions') as any)
+      .update({ status: 'starting', started_at: new Date().toISOString() })
       .eq('id', session.id);
 
     // Redirect to game
