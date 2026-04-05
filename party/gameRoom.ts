@@ -484,11 +484,12 @@ export default class GameRoom implements Party.Server {
 
   private broadcast(message: ServerMessage, exclude: string[] = []) {
     const messageStr = JSON.stringify(message);
-    for (const connection of this.room.getConnections()) {
+    const connections = Array.from(this.room.getConnections());
+    connections.forEach((connection) => {
       if (!exclude.includes(connection.id)) {
         connection.send(messageStr);
       }
-    }
+    });
   }
 
   private sendToConnection(connection: Party.Connection, message: ServerMessage) {
