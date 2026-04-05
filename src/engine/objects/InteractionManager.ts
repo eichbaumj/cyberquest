@@ -120,24 +120,26 @@ export class InteractionManager {
     });
 
     // Update nearby states
-    if (closestObject !== this.currentNearbyObject) {
+    const newNearby = closestObject;
+
+    if (newNearby !== this.currentNearbyObject) {
       // Exit previous
       if (this.currentNearbyObject) {
         this.currentNearbyObject.setNearby(false);
       }
 
       // Enter new
-      if (closestObject) {
-        closestObject.setNearby(true);
+      if (newNearby !== null) {
+        newNearby.setNearby(true);
         this.onProximityChange.notifyObservers({
-          object: closestObject,
-          prompt: closestObject.getInteractionPrompt(),
+          object: newNearby,
+          prompt: newNearby.getInteractionPrompt(),
         });
       } else {
         this.onProximityChange.notifyObservers({ object: null, prompt: null });
       }
 
-      this.currentNearbyObject = closestObject;
+      this.currentNearbyObject = newNearby;
     }
   }
 
