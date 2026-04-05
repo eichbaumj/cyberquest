@@ -90,7 +90,7 @@ export class RemotePlayer {
       false
     );
 
-    const ctx = texture.getContext();
+    const ctx = texture.getContext() as CanvasRenderingContext2D;
     ctx.font = 'bold 32px monospace';
     ctx.fillStyle = '#00f0ff';
     ctx.textAlign = 'center';
