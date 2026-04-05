@@ -70,7 +70,7 @@ function GameContent() {
         const state = channel.presenceState();
         const players: RemotePlayerData[] = [];
 
-        Object.entries(state).forEach(([odId, presences]) => {
+        Object.entries(state).forEach(([key, presences]) => {
           const presence = (presences as any[])[0];
           if (presence && presence.user_id !== user.id) {
             players.push({
@@ -90,6 +90,28 @@ function GameContent() {
         .on('presence', { event: 'sync' }, syncPresence)
         .on('presence', { event: 'join' }, syncPresence)
         .on('presence', { event: 'leave' }, syncPresence)
+        .on('broadcast', { event: 'move' }, ({ payload }) => {
+          // Update remote player position from broadcast
+          if (payload.user_id !== user.id) {
+            setRemotePlayers(prev => {
+              const existing = prev.find(p => p.id === payload.user_id);
+              if (existing) {
+                return prev.map(p =>
+                  p.id === payload.user_id
+                    ? { ...p, position: payload.position, rotation: payload.rotation }
+                    : p
+                );
+              } else {
+                return [...prev, {
+                  id: payload.user_id,
+                  nickname: payload.nickname || 'Player',
+                  position: payload.position,
+                  rotation: payload.rotation,
+                }];
+              }
+            });
+          }
+        })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             // Track our presence with initial position
@@ -124,12 +146,16 @@ function GameContent() {
     lastUpdateRef.current = now;
 
     if (positionChannelRef.current && userId) {
-      positionChannelRef.current.track({
-        user_id: userId,
-        nickname: nicknameRef.current,
-        position,
-        rotation,
-        online_at: new Date().toISOString(),
+      // Broadcast movement to all other players
+      positionChannelRef.current.send({
+        type: 'broadcast',
+        event: 'move',
+        payload: {
+          user_id: userId,
+          nickname: nicknameRef.current,
+          position,
+          rotation,
+        },
       });
     }
   }, [userId]);
