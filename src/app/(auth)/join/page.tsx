@@ -63,7 +63,7 @@ export default function JoinGamePage() {
       .from('profiles')
       .select('username, display_name')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { username: string; display_name: string | null } | null };
 
     // Check if already in game
     const { data: existingPlayer } = await supabase

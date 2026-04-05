@@ -138,7 +138,7 @@ export default function NewSessionPage() {
       .from('profiles')
       .select('username, display_name')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { username: string; display_name: string | null } | null };
 
     // Add host as a player
     await supabase
