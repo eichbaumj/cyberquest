@@ -339,7 +339,7 @@ function AddQuestionModal({ bankId, onClose, onAdded }: { bankId: string; onClos
       difficulty: formData.difficulty,
       points: formData.points,
       time_limit_seconds: formData.timeLimit,
-    });
+    } as any);
 
     if (insertError) {
       setError(insertError.message);

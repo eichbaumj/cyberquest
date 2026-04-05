@@ -25,7 +25,8 @@
       "Bash(git remote add:*)",
       "Bash(git push:*)",
       "Bash(npx partykit deploy)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npx tsc --noEmit)"
     ]
   }
 }

@@ -179,7 +179,7 @@ export default function LobbyPage() {
         session_id: session.id,
         user_id: user.id,
         nickname: nickname,
-      });
+      } as any);
 
     if (error) {
       setError('Failed to join game');

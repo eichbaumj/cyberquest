@@ -82,7 +82,7 @@ export default function JoinGamePage() {
           user_id: user.id,
           nickname: profile?.display_name || profile?.username || 'Player',
           avatar_seed: Math.random().toString(36).substring(7),
-        });
+        } as any);
 
       if (joinError) {
         setError('Failed to join game. Please try again.');

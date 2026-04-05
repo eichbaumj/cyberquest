@@ -123,7 +123,7 @@ export default function NewSessionPage() {
           streak_bonus_enabled: formData.streakBonusEnabled,
           time_bonus_enabled: formData.timeBonusEnabled,
         },
-      })
+      } as any)
       .select()
       .single();
 
@@ -148,7 +148,7 @@ export default function NewSessionPage() {
         user_id: user.id,
         nickname: profile?.display_name || profile?.username || 'Host',
         avatar_seed: Math.random().toString(36).substring(7),
-      });
+      } as any);
 
     // Redirect to the lobby
     router.push(`/lobby/${data.join_code}`);

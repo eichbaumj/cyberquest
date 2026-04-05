@@ -39,7 +39,7 @@ export default function NewQuestionBankPage() {
         description: formData.description || null,
         category: formData.category,
         is_public: formData.isPublic,
-      })
+      } as any)
       .select()
       .single();
 
