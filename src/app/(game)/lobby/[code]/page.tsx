@@ -73,7 +73,7 @@ export default function LobbyPage() {
       const { data: playersData } = await supabase
         .from('game_players')
         .select('*')
-        .eq('session_id', sessionData.id);
+        .eq('session_id', sessionData.id) as { data: any[] | null };
 
       if (playersData) {
         setPlayers(

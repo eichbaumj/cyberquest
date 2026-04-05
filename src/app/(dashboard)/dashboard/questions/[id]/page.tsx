@@ -57,7 +57,7 @@ export default function QuestionBankPage() {
       .from('questions')
       .select('*')
       .eq('bank_id', bankId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as { data: any[] | null };
 
     if (questionsData) {
       setQuestions(questionsData);

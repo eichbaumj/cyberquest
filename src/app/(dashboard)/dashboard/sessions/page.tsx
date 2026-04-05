@@ -28,7 +28,7 @@ export default async function SessionsPage() {
       players:game_players(count)
     `)
     .eq('host_id', user.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as { data: any[] | null };
 
   const activeSessions = sessions?.filter(s => s.status === 'lobby' || s.status === 'active') || [];
   const pastSessions = sessions?.filter(s => s.status === 'finished') || [];

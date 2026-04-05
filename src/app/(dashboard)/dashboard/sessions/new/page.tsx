@@ -47,7 +47,7 @@ export default function NewSessionPage() {
         .from('question_banks')
         .select('id, title, category, questions(count)')
         .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: any[] | null };
 
       setQuestionBanks(data || []);
       setLoadingBanks(false);
