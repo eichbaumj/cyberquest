@@ -1,0 +1,9 @@
+{
+  "$schema": "https://www.partykit.io/schema.json",
+  "name": "cyberquest",
+  "main": "party/index.ts",
+  "parties": {
+    "gameroom": "party/gameRoom.ts",
+    "lobby": "party/lobbyRoom.ts"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\Users\\james.a\\study_game\" /A)",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''C:\\Users\\james.a\\study_game'' -Force -Recurse | Select-Object FullName\")",
+      "WebSearch",
+      "Bash(dir \"C:\\Users\\james.a\\study_game\" /A /S)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:www.geeksforgeeks.org)",
+      "WebFetch(domain:databasesample.com)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(where npm:*)",
+      "Bash(where:*)",
+      "Bash(cmd /c \"where npm && where node\")",
+      "Bash(cmd /c \"node --version && npm --version\")",
+      "Bash(cmd /c \"echo %PATH%\")",
+      "Bash(powershell -Command \"node --version\")",
+      "Bash(powershell -Command \"Get-Command node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell -Command \"Get-Command npm -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell -Command \"Test-Path ''C:\\Program Files\\nodejs\\node.exe''\")",
+      "Bash(powershell:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
