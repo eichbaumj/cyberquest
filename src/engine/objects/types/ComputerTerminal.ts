@@ -138,7 +138,7 @@ export class ComputerTerminal extends InteractiveObject {
   public setScreenText(text: string): void {
     if (!this.screenTexture) return;
 
-    const ctx = this.screenTexture.getContext();
+    const ctx = this.screenTexture.getContext() as CanvasRenderingContext2D;
     const width = 512;
     const height = 256;
 

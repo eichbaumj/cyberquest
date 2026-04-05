@@ -27,7 +27,22 @@
       "Bash(npx partykit deploy)",
       "WebFetch(domain:github.com)",
       "Bash(npx tsc --noEmit)",
-      "Bash(exist on type 'never'\" errors during Vercel deployment.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(exist on type 'never'\" errors during Vercel deployment.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(cmd /c \"set PATH=%PATH%;C:\\Program Files\\nodejs && npm run build\")",
+      "Bash(cmd /c \"cd /d C:\\Users\\james.a\\study_game && C:\\Program Files\\nodejs\\npm.cmd run build\")",
+      "Bash(\"C:\\Program Files\\nodejs\\npm.cmd\" run build)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" status)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" log --oneline -5)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" add src/engine/player/VoxelCharacter.ts src/engine/player/LocalPlayer.ts src/engine/player/RemotePlayer.ts src/components/game/GameCanvas.tsx \"src/app/(game)/play/page.tsx\")",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"$(cat <<''EOF''\nAdd Minecraft-style VoxelCharacter with cyberpunk animations\n\n- Create VoxelCharacter class with blocky body parts (head, torso, arms, legs)\n- Implement procedural animations (idle, walk, run, jump, interact) using pivot points\n- Add cyberpunk styling with emissive neon accents and glowing eyes\n- Color variations for different players using CYBER_COLORS palette\n- Integrate VoxelCharacter with LocalPlayer and RemotePlayer\n- Sync animation state over network via broadcast\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" push)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" add src/engine/objects src/engine/world src/components/game/GameCanvas.tsx src/engine/core/Engine.ts)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"$(cat <<''EOF''\nAdd DFIR Forensics Lab zone with interactive objects\n\nWorld Building:\n- VoxelBuilder utility for creating walls, floors, workbenches, computers\n- DFIRLabZone with main lab area and locked evidence room\n- Cyber-themed materials with neon accents and grid floors\n\nInteractive Objects:\n- InteractiveObject base class with proximity detection\n- InteractionManager handles E key interaction and prompts\n- ComputerTerminal with dynamic screen texture\n- LockedDoor with keypad display (unlocks after 3 correct answers)\n\nEngine Updates:\n- Add GlowLayer for interactive object highlights\n- hideDefaultGround() method for zone loading\n\nGameCanvas Integration:\n- Load DFIR Lab zone on game start\n- Show \"Press E\" prompt when near objects\n- Support for question binding to terminals\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" add src/engine/objects/InteractionManager.ts)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix TypeScript ''never'' type error in InteractionManager\n\nAssign closestObject to new variable before null check to help TypeScript narrowing.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\")",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix TypeScript never type with explicit cast\")",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" add -A)",
+      "Bash(git -C \"C:\\Users\\james.a\\study_game\" commit -m \"Fix CanvasRenderingContext2D type casts\")"
     ]
   }
 }

@@ -169,7 +169,7 @@ export class LockedDoor extends InteractiveObject {
   private updateKeypadDisplay(text: string): void {
     if (!this.keypadTexture) return;
 
-    const ctx = this.keypadTexture.getContext();
+    const ctx = this.keypadTexture.getContext() as CanvasRenderingContext2D;
     const width = 128;
     const height = 64;
 
