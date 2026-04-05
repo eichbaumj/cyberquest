@@ -7,17 +7,20 @@ import {
   Mesh,
   DynamicTexture,
 } from '@babylonjs/core';
+import { VoxelCharacter, AnimationState, CYBER_COLORS } from './VoxelCharacter';
 
 export interface RemotePlayerData {
   id: string;
   nickname: string;
   position: { x: number; y: number; z: number };
   rotation: number;
+  animState?: string;
+  colorIndex?: number;
 }
 
 export class RemotePlayer {
   private scene: Scene;
-  private mesh: Mesh;
+  private character: VoxelCharacter;
   private namePlate: Mesh;
   public id: string;
   public nickname: string;
@@ -32,52 +35,30 @@ export class RemotePlayer {
     this.id = data.id;
     this.nickname = data.nickname;
 
-    // Create player mesh
-    this.mesh = this.createPlayerMesh();
-    this.mesh.position = new Vector3(data.position.x, data.position.y, data.position.z);
-    this.mesh.rotation.y = data.rotation;
+    // Create character with color based on player index or random
+    const colorIndex = data.colorIndex !== undefined
+      ? data.colorIndex
+      : Math.floor(Math.random() * CYBER_COLORS.length);
+    const colors = CYBER_COLORS[colorIndex % CYBER_COLORS.length];
+
+    this.character = new VoxelCharacter(scene, data.id, colors);
+    this.character.setPosition(new Vector3(data.position.x, data.position.y, data.position.z));
+    this.character.setRotation(data.rotation);
+
+    // Set initial animation state
+    if (data.animState) {
+      this.character.setAnimationState(data.animState as AnimationState);
+    }
 
     // Create name plate
     this.namePlate = this.createNamePlate();
 
     // Set initial targets
-    this.targetPosition = this.mesh.position.clone();
+    this.targetPosition = this.character.getPosition();
     this.targetRotation = data.rotation;
 
     // Register update for interpolation
     this.scene.onBeforeRenderObservable.add(() => this.update());
-  }
-
-  private createPlayerMesh(): Mesh {
-    // Create a simple capsule-like player mesh (different color from local player)
-    const body = MeshBuilder.CreateCylinder(
-      `remotePlayer_${this.id}`,
-      { height: 1.5, diameter: 0.8, tessellation: 16 },
-      this.scene
-    );
-
-    // Head
-    const head = MeshBuilder.CreateSphere(
-      `remotePlayerHead_${this.id}`,
-      { diameter: 0.5 },
-      this.scene
-    );
-    head.position.y = 1;
-    head.parent = body;
-
-    // Material - different color for remote players
-    const material = new StandardMaterial(`remotePlayerMat_${this.id}`, this.scene);
-    material.diffuseColor = new Color3(0.75, 0, 1); // cyber-purple
-    material.emissiveColor = new Color3(0.15, 0, 0.2);
-    material.specularColor = new Color3(0.5, 0.5, 0.5);
-    body.material = material;
-
-    const headMat = new StandardMaterial(`remoteHeadMat_${this.id}`, this.scene);
-    headMat.diffuseColor = new Color3(1, 0.8, 0); // cyber-yellow
-    headMat.emissiveColor = new Color3(0.2, 0.15, 0);
-    head.material = headMat;
-
-    return body;
   }
 
   private createNamePlate(): Mesh {
@@ -91,7 +72,7 @@ export class RemotePlayer {
     );
 
     const ctx = texture.getContext() as CanvasRenderingContext2D;
-    ctx.font = 'bold 32px monospace';
+    ctx.font = 'bold 28px monospace';
     ctx.fillStyle = '#00f0ff';
     ctx.textAlign = 'center';
     ctx.fillText(this.nickname, textureSize / 2, 40);
@@ -103,8 +84,8 @@ export class RemotePlayer {
       { width: 2, height: 0.5 },
       this.scene
     );
-    namePlate.position.y = 2;
-    namePlate.parent = this.mesh;
+    namePlate.position.y = 2.2; // Above head
+    namePlate.parent = this.character.getRoot();
     namePlate.billboardMode = Mesh.BILLBOARDMODE_ALL;
 
     const nameMat = new StandardMaterial(`namePlateMat_${this.id}`, this.scene);
@@ -122,10 +103,13 @@ export class RemotePlayer {
     const t = Math.min(this.INTERPOLATION_SPEED * deltaTime, 1);
 
     // Interpolate position
-    this.mesh.position = Vector3.Lerp(this.mesh.position, this.targetPosition, t);
+    const currentPos = this.character.getPosition();
+    const newPos = Vector3.Lerp(currentPos, this.targetPosition, t);
+    this.character.setPosition(newPos);
 
     // Interpolate rotation
-    this.mesh.rotation.y = this.lerpAngle(this.mesh.rotation.y, this.targetRotation, t);
+    const currentRot = this.character.getRotation();
+    this.character.setRotation(this.lerpAngle(currentRot, this.targetRotation, t));
   }
 
   private lerpAngle(a: number, b: number, t: number): number {
@@ -135,17 +119,25 @@ export class RemotePlayer {
     return a + diff * Math.min(t, 1);
   }
 
-  public updateState(position: { x: number; y: number; z: number }, rotation: number): void {
+  public updateState(
+    position: { x: number; y: number; z: number },
+    rotation: number,
+    animState?: string
+  ): void {
     this.targetPosition = new Vector3(position.x, position.y, position.z);
     this.targetRotation = rotation;
+
+    if (animState) {
+      this.character.setAnimationState(animState as AnimationState);
+    }
   }
 
   public getPosition(): Vector3 {
-    return this.mesh.position.clone();
+    return this.character.getPosition();
   }
 
   public dispose(): void {
     this.namePlate.dispose();
-    this.mesh.dispose();
+    this.character.dispose();
   }
 }

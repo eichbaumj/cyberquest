@@ -1,38 +1,37 @@
 import {
   Scene,
   Vector3,
-  MeshBuilder,
-  StandardMaterial,
-  Color3,
-  Mesh,
   ArcRotateCamera,
   KeyboardEventTypes,
-  PointerEventTypes,
 } from '@babylonjs/core';
+import { VoxelCharacter, AnimationState, CYBER_COLORS } from './VoxelCharacter';
 
 export interface PlayerState {
   position: Vector3;
-  rotation: number; // Y rotation
+  rotation: number;
   velocity: Vector3;
+  animState: AnimationState;
 }
 
 export interface PlayerOptions {
   scene: Scene;
   camera: ArcRotateCamera;
   startPosition?: Vector3;
-  onMove?: (position: Vector3, rotation: number) => void;
+  colorIndex?: number;
+  onMove?: (position: Vector3, rotation: number, animState: AnimationState) => void;
 }
 
 export class LocalPlayer {
   private scene: Scene;
   private camera: ArcRotateCamera;
-  private mesh: Mesh;
-  private onMove?: (position: Vector3, rotation: number) => void;
+  private character: VoxelCharacter;
+  private onMove?: (position: Vector3, rotation: number, animState: AnimationState) => void;
 
   // Movement state
   private keys: Map<string, boolean> = new Map();
   private velocity: Vector3 = Vector3.Zero();
   private isGrounded: boolean = true;
+  private currentAnimState: AnimationState = AnimationState.IDLE;
 
   // Movement settings
   private readonly WALK_SPEED = 5;
@@ -42,16 +41,20 @@ export class LocalPlayer {
   private readonly FRICTION = 10;
 
   // Camera rotation settings
-  private readonly ROTATION_SPEED = 2; // Radians per second for arrow key rotation
+  private readonly ROTATION_SPEED = 2;
 
   constructor(options: PlayerOptions) {
     this.scene = options.scene;
     this.camera = options.camera;
     this.onMove = options.onMove;
 
-    // Create player mesh
-    this.mesh = this.createPlayerMesh();
-    this.mesh.position = options.startPosition || new Vector3(0, 1, 0);
+    // Create voxel character with specified or first color
+    const colors = options.colorIndex !== undefined
+      ? CYBER_COLORS[options.colorIndex % CYBER_COLORS.length]
+      : CYBER_COLORS[0]; // Local player gets cyan
+
+    this.character = new VoxelCharacter(this.scene, 'local', colors);
+    this.character.setPosition(options.startPosition || new Vector3(0, 1, 0));
 
     // Setup input handling
     this.setupInput();
@@ -60,48 +63,13 @@ export class LocalPlayer {
     this.scene.onBeforeRenderObservable.add(() => this.update());
   }
 
-  private createPlayerMesh(): Mesh {
-    // Create a simple capsule-like player mesh
-    const body = MeshBuilder.CreateCylinder(
-      'playerBody',
-      { height: 1.5, diameter: 0.8, tessellation: 16 },
-      this.scene
-    );
-
-    // Head
-    const head = MeshBuilder.CreateSphere(
-      'playerHead',
-      { diameter: 0.5 },
-      this.scene
-    );
-    head.position.y = 1;
-    head.parent = body;
-
-    // Material with cyber glow
-    const material = new StandardMaterial('playerMat', this.scene);
-    material.diffuseColor = new Color3(0, 0.94, 1); // cyber-blue
-    material.emissiveColor = new Color3(0, 0.2, 0.25);
-    material.specularColor = new Color3(0.5, 0.5, 0.5);
-    body.material = material;
-
-    const headMat = new StandardMaterial('headMat', this.scene);
-    headMat.diffuseColor = new Color3(0, 1, 0.53); // cyber-green
-    headMat.emissiveColor = new Color3(0, 0.15, 0.1);
-    head.material = headMat;
-
-    return body;
-  }
-
   private setupInput(): void {
-    // Keyboard input
     this.scene.onKeyboardObservable.add((kbInfo) => {
       const key = kbInfo.event.code;
 
       switch (kbInfo.type) {
         case KeyboardEventTypes.KEYDOWN:
           this.keys.set(key, true);
-
-          // Prevent default for movement keys
           if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
             kbInfo.event.preventDefault();
           }
@@ -112,7 +80,6 @@ export class LocalPlayer {
           break;
       }
     });
-
   }
 
   private update(): void {
@@ -135,8 +102,9 @@ export class LocalPlayer {
       moveDirection.normalize();
     }
 
-    // Apply speed
-    const speed = this.isKeyPressed('ShiftLeft') ? this.RUN_SPEED : this.WALK_SPEED;
+    // Determine speed and animation state
+    const isRunning = this.isKeyPressed('ShiftLeft');
+    const speed = isRunning ? this.RUN_SPEED : this.WALK_SPEED;
     const targetVelocity = moveDirection.scale(speed);
 
     // Smoothly interpolate velocity
@@ -155,25 +123,36 @@ export class LocalPlayer {
     }
 
     // Apply velocity to position
-    this.mesh.position.addInPlace(this.velocity.scale(deltaTime));
+    const position = this.character.getPosition();
+    position.addInPlace(this.velocity.scale(deltaTime));
+    this.character.setPosition(position);
 
     // Simple ground collision
-    if (this.mesh.position.y < 0.75) {
-      this.mesh.position.y = 0.75;
+    if (position.y < 0.75) {
+      position.y = 0.75;
+      this.character.setPosition(position);
       this.velocity.y = 0;
       this.isGrounded = true;
     }
 
-    // Rotate player to face movement direction
+    // Rotate character to face movement direction
     if (moveDirection.length() > 0.1) {
       const targetRotation = Math.atan2(moveDirection.x, moveDirection.z);
-      this.mesh.rotation.y = this.lerpAngle(this.mesh.rotation.y, targetRotation, 10 * deltaTime);
+      const currentRotation = this.character.getRotation();
+      this.character.setRotation(this.lerpAngle(currentRotation, targetRotation, 10 * deltaTime));
+    }
+
+    // Update animation state
+    const newAnimState = this.determineAnimationState(moveDirection);
+    if (newAnimState !== this.currentAnimState) {
+      this.currentAnimState = newAnimState;
+      this.character.setAnimationState(newAnimState);
     }
 
     // Update camera to follow player
-    this.camera.target = this.mesh.position.add(new Vector3(0, 0.5, 0));
+    this.camera.target = position.add(new Vector3(0, 1, 0));
 
-    // Arrow key camera rotation (swap directions for intuitive feel)
+    // Arrow key camera rotation
     if (this.isKeyPressed('ArrowLeft')) {
       this.camera.alpha -= this.ROTATION_SPEED * deltaTime;
     }
@@ -187,10 +166,22 @@ export class LocalPlayer {
       this.camera.beta = Math.min(Math.PI / 2 - 0.1, this.camera.beta + this.ROTATION_SPEED * deltaTime);
     }
 
-    // Emit movement event
-    if (this.onMove && (this.velocity.x !== 0 || this.velocity.z !== 0)) {
-      this.onMove(this.mesh.position.clone(), this.mesh.rotation.y);
+    // Emit movement event (always emit to keep remote players updated)
+    if (this.onMove) {
+      this.onMove(position.clone(), this.character.getRotation(), this.currentAnimState);
     }
+  }
+
+  private determineAnimationState(moveDirection: Vector3): AnimationState {
+    if (!this.isGrounded) {
+      return AnimationState.JUMP;
+    }
+
+    if (moveDirection.length() > 0.1) {
+      return this.isKeyPressed('ShiftLeft') ? AnimationState.RUN : AnimationState.WALK;
+    }
+
+    return AnimationState.IDLE;
   }
 
   private getMovementInput(): Vector3 {
@@ -221,22 +212,26 @@ export class LocalPlayer {
   }
 
   public getPosition(): Vector3 {
-    return this.mesh.position.clone();
+    return this.character.getPosition();
   }
 
   public getRotation(): number {
-    return this.mesh.rotation.y;
+    return this.character.getRotation();
   }
 
   public setPosition(position: Vector3): void {
-    this.mesh.position = position;
+    this.character.setPosition(position);
   }
 
-  public getMesh(): Mesh {
-    return this.mesh;
+  public getMesh() {
+    return this.character.getMesh();
+  }
+
+  public getCharacter(): VoxelCharacter {
+    return this.character;
   }
 
   public dispose(): void {
-    this.mesh.dispose();
+    this.character.dispose();
   }
 }

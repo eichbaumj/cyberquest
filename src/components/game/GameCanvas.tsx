@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Vector3 } from '@babylonjs/core';
 import { GameEngine } from '@/engine/core/Engine';
 import { LocalPlayer } from '@/engine/player/LocalPlayer';
 import { RemotePlayer, RemotePlayerData } from '@/engine/player/RemotePlayer';
+import { AnimationState } from '@/engine/player/VoxelCharacter';
 
 interface GameCanvasProps {
   onReady?: () => void;
-  onPlayerMove?: (position: { x: number; y: number; z: number }, rotation: number) => void;
+  onPlayerMove?: (position: { x: number; y: number; z: number }, rotation: number, animState: string) => void;
   remotePlayers?: RemotePlayerData[];
 }
 
@@ -44,10 +45,11 @@ export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCa
         scene: engine.getScene(),
         camera: engine.getCamera(),
         startPosition: new Vector3(0, 1, 0),
-        onMove: (position, rotation) => {
+        onMove: (position: Vector3, rotation: number, animState: AnimationState) => {
           onPlayerMove?.(
             { x: position.x, y: position.y, z: position.z },
-            rotation
+            rotation,
+            animState
           );
         },
       });
@@ -94,8 +96,8 @@ export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCa
       const existingPlayer = remotePlayersRef.current.get(playerData.id);
 
       if (existingPlayer) {
-        // Update existing player
-        existingPlayer.updateState(playerData.position, playerData.rotation);
+        // Update existing player with animation state
+        existingPlayer.updateState(playerData.position, playerData.rotation, playerData.animState);
       } else {
         // Create new player
         const newPlayer = new RemotePlayer(scene, playerData);

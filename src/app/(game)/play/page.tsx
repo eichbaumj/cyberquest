@@ -98,7 +98,7 @@ function GameContent() {
               if (existing) {
                 return prev.map(p =>
                   p.id === payload.user_id
-                    ? { ...p, position: payload.position, rotation: payload.rotation }
+                    ? { ...p, position: payload.position, rotation: payload.rotation, animState: payload.animState }
                     : p
                 );
               } else {
@@ -107,6 +107,7 @@ function GameContent() {
                   nickname: payload.nickname || 'Player',
                   position: payload.position,
                   rotation: payload.rotation,
+                  animState: payload.animState,
                 }];
               }
             });
@@ -140,7 +141,7 @@ function GameContent() {
   }, [sessionId]);
 
   // Handle player movement - throttled to ~10 updates per second
-  const handlePlayerMove = useCallback((position: { x: number; y: number; z: number }, rotation: number) => {
+  const handlePlayerMove = useCallback((position: { x: number; y: number; z: number }, rotation: number, animState: string) => {
     const now = Date.now();
     if (now - lastUpdateRef.current < 100) return; // Throttle to 10 updates/sec
     lastUpdateRef.current = now;
@@ -155,6 +156,7 @@ function GameContent() {
           nickname: nicknameRef.current,
           position,
           rotation,
+          animState,
         },
       });
     }
