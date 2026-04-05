@@ -201,7 +201,7 @@ export default function LobbyPage() {
     // Update session status
     await supabase
       .from('game_sessions')
-      .update({ status: 'starting', started_at: new Date().toISOString() })
+      .update({ status: 'starting', started_at: new Date().toISOString() } as any)
       .eq('id', session.id);
 
     // Redirect to game
