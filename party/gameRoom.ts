@@ -200,13 +200,15 @@ export default class GameRoom implements Party.Server {
   private handleJoin(connection: Party.Connection, odygerId: string, nickname: string) {
     // Check if player is already in game (reconnect)
     let existingPlayer: PlayerState | undefined;
-    for (const [id, player] of this.state.players) {
+    let existingId: string | undefined;
+    this.state.players.forEach((player, id) => {
       if (player.odygerId === odygerId) {
         existingPlayer = player;
-        // Update connection ID for reconnect
-        this.state.players.delete(id);
-        break;
+        existingId = id;
       }
+    });
+    if (existingId) {
+      this.state.players.delete(existingId);
     }
 
     const player: PlayerState = existingPlayer || {

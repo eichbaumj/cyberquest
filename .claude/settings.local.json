@@ -21,7 +21,11 @@
       "Bash(powershell:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(npx partykit deploy)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
