@@ -1,25 +1,42 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Vector3 } from '@babylonjs/core';
 import { GameEngine } from '@/engine/core/Engine';
 import { LocalPlayer } from '@/engine/player/LocalPlayer';
 import { RemotePlayer, RemotePlayerData } from '@/engine/player/RemotePlayer';
 import { AnimationState } from '@/engine/player/VoxelCharacter';
+import { DFIRLabZone } from '@/engine/world/zones/DFIRLabZone';
+import { InteractionManager } from '@/engine/objects/InteractionManager';
+import { InteractiveObject, Question } from '@/engine/objects/InteractiveObject';
 
 interface GameCanvasProps {
   onReady?: () => void;
   onPlayerMove?: (position: { x: number; y: number; z: number }, rotation: number, animState: string) => void;
   remotePlayers?: RemotePlayerData[];
+  questions?: Question[];
+  onInteraction?: (object: InteractiveObject) => void;
+  onCorrectAnswer?: (count: number) => void;
 }
 
-export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCanvasProps) {
+export function GameCanvas({
+  onReady,
+  onPlayerMove,
+  remotePlayers = [],
+  questions = [],
+  onInteraction,
+  onCorrectAnswer,
+}: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const localPlayerRef = useRef<LocalPlayer | null>(null);
   const remotePlayersRef = useRef<Map<string, RemotePlayer>>(new Map());
+  const zoneRef = useRef<DFIRLabZone | null>(null);
+  const interactionManagerRef = useRef<InteractionManager | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [interactionPrompt, setInteractionPrompt] = useState<string | null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
 
   // Initialize game engine
   useEffect(() => {
@@ -39,12 +56,42 @@ export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCa
         },
       });
 
-      // Create local player
       const engine = engineRef.current;
+      const scene = engine.getScene();
+
+      // Hide default ground - zone will create its own
+      engine.hideDefaultGround();
+
+      // Create interaction manager
+      interactionManagerRef.current = new InteractionManager(
+        scene,
+        () => localPlayerRef.current?.getPosition() || Vector3.Zero()
+      );
+
+      // Listen for proximity changes to show/hide interaction prompt
+      interactionManagerRef.current.onProximityChange.add(({ prompt }) => {
+        setInteractionPrompt(prompt);
+      });
+
+      // Listen for interactions
+      interactionManagerRef.current.onInteraction.add((object) => {
+        onInteraction?.(object);
+      });
+
+      // Create DFIR Lab zone
+      zoneRef.current = new DFIRLabZone(scene, interactionManagerRef.current, {
+        requiredCorrectForUnlock: 3,
+        evidenceRoomCode: '7734',
+      });
+
+      // Get spawn point from zone
+      const spawnPoint = zoneRef.current.getSpawnPoint();
+
+      // Create local player at zone spawn point
       localPlayerRef.current = new LocalPlayer({
-        scene: engine.getScene(),
+        scene: scene,
         camera: engine.getCamera(),
-        startPosition: new Vector3(0, 1, 0),
+        startPosition: spawnPoint,
         onMove: (position: Vector3, rotation: number, animState: AnimationState) => {
           onPlayerMove?.(
             { x: position.x, y: position.y, z: position.z },
@@ -69,11 +116,35 @@ export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCa
 
     // Cleanup
     return () => {
+      zoneRef.current?.dispose();
+      interactionManagerRef.current?.dispose();
       localPlayerRef.current?.dispose();
       engineRef.current?.dispose();
       remotePlayersRef.current.forEach((player) => player.dispose());
       remotePlayersRef.current.clear();
     };
+  }, []);
+
+  // Spawn terminals when questions change
+  useEffect(() => {
+    if (zoneRef.current && questions.length > 0) {
+      zoneRef.current.spawnTerminalsForQuestions(questions);
+    }
+  }, [questions]);
+
+  // Check unlock when correct count changes
+  useEffect(() => {
+    if (zoneRef.current && correctCount > 0) {
+      const unlocked = zoneRef.current.checkUnlock(correctCount);
+      if (unlocked) {
+        onCorrectAnswer?.(correctCount);
+      }
+    }
+  }, [correctCount, onCorrectAnswer]);
+
+  // Expose method to mark answer correct (can be called from parent)
+  const handleCorrectAnswer = useCallback(() => {
+    setCorrectCount((prev) => prev + 1);
   }, []);
 
   // Sync remote players
@@ -141,6 +212,15 @@ export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCa
         tabIndex={0}
       />
 
+      {/* Interaction prompt */}
+      {!isLoading && !error && interactionPrompt && (
+        <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-cyber-dark/90 border border-cyber-blue rounded-lg px-4 py-2 text-center">
+            <p className="text-cyber-blue cyber-glow text-lg">{interactionPrompt}</p>
+          </div>
+        </div>
+      )}
+
       {/* Controls hint */}
       {!isLoading && !error && (
         <div className="absolute bottom-4 left-4 text-sm text-muted-foreground bg-cyber-dark/80 rounded-lg px-3 py-2 z-10">
@@ -149,6 +229,7 @@ export function GameCanvas({ onReady, onPlayerMove, remotePlayers = [] }: GameCa
           <p><span className="text-cyber-blue">SHIFT</span> - Run</p>
           <p><span className="text-cyber-blue">SPACE</span> - Jump</p>
           <p><span className="text-cyber-blue">SCROLL</span> - Zoom</p>
+          <p><span className="text-cyber-blue">E</span> - Interact</p>
         </div>
       )}
     </div>

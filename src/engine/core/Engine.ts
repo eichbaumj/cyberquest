@@ -13,6 +13,8 @@ import {
   PointerEventTypes,
   Texture,
   CubeTexture,
+  GlowLayer,
+  Mesh,
 } from '@babylonjs/core';
 import '@babylonjs/loaders';
 
@@ -27,6 +29,8 @@ export class GameEngine {
   private scene: Scene;
   private camera: ArcRotateCamera;
   private shadowGenerator: ShadowGenerator | null = null;
+  private glowLayer: GlowLayer | null = null;
+  private defaultGround: Mesh | null = null;
   private isRunning: boolean = false;
 
   constructor(private options: GameEngineOptions) {
@@ -52,6 +56,9 @@ export class GameEngine {
 
     // Create ground
     this.createGround();
+
+    // Create glow layer for interactive objects
+    this.setupGlowLayer();
 
     // Handle window resize
     window.addEventListener('resize', this.handleResize);
@@ -185,7 +192,7 @@ export class GameEngine {
 
   private createGround(): void {
     // Create ground plane
-    const ground = MeshBuilder.CreateGround(
+    this.defaultGround = MeshBuilder.CreateGround(
       'ground',
       { width: 50, height: 50, subdivisions: 50 },
       this.scene
@@ -195,11 +202,17 @@ export class GameEngine {
     const groundMat = new StandardMaterial('groundMat', this.scene);
     groundMat.diffuseColor = new Color3(0.05, 0.08, 0.12);
     groundMat.specularColor = new Color3(0.1, 0.1, 0.1);
-    ground.material = groundMat;
-    ground.receiveShadows = true;
+    this.defaultGround.material = groundMat;
+    this.defaultGround.receiveShadows = true;
 
     // Create grid lines
     this.createGridLines();
+  }
+
+  private setupGlowLayer(): void {
+    this.glowLayer = new GlowLayer('glowLayer', this.scene);
+    this.glowLayer.intensity = 0.8;
+    this.glowLayer.blurKernelSize = 32;
   }
 
   private createGridLines(): void {
@@ -265,6 +278,39 @@ export class GameEngine {
 
   public getShadowGenerator(): ShadowGenerator | null {
     return this.shadowGenerator;
+  }
+
+  public getGlowLayer(): GlowLayer | null {
+    return this.glowLayer;
+  }
+
+  /**
+   * Hide the default ground (when loading a zone with its own floor)
+   */
+  public hideDefaultGround(): void {
+    if (this.defaultGround) {
+      this.defaultGround.setEnabled(false);
+    }
+    // Also hide grid lines
+    this.scene.meshes.forEach((mesh) => {
+      if (mesh.name.startsWith('gridLine')) {
+        mesh.setEnabled(false);
+      }
+    });
+  }
+
+  /**
+   * Show the default ground
+   */
+  public showDefaultGround(): void {
+    if (this.defaultGround) {
+      this.defaultGround.setEnabled(true);
+    }
+    this.scene.meshes.forEach((mesh) => {
+      if (mesh.name.startsWith('gridLine')) {
+        mesh.setEnabled(true);
+      }
+    });
   }
 
   public setCameraTarget(target: Vector3): void {
