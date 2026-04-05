@@ -12,7 +12,7 @@ export interface RemotePlayerData {
   id: string;
   nickname: string;
   position: { x: number; y: number; z: number };
-  rotation: { y: number };
+  rotation: number;
 }
 
 export class RemotePlayer {
@@ -35,14 +35,14 @@ export class RemotePlayer {
     // Create player mesh
     this.mesh = this.createPlayerMesh();
     this.mesh.position = new Vector3(data.position.x, data.position.y, data.position.z);
-    this.mesh.rotation.y = data.rotation.y;
+    this.mesh.rotation.y = data.rotation;
 
     // Create name plate
     this.namePlate = this.createNamePlate();
 
     // Set initial targets
     this.targetPosition = this.mesh.position.clone();
-    this.targetRotation = data.rotation.y;
+    this.targetRotation = data.rotation;
 
     // Register update for interpolation
     this.scene.onBeforeRenderObservable.add(() => this.update());
@@ -135,9 +135,9 @@ export class RemotePlayer {
     return a + diff * Math.min(t, 1);
   }
 
-  public updateState(position: { x: number; y: number; z: number }, rotation: { y: number }): void {
+  public updateState(position: { x: number; y: number; z: number }, rotation: number): void {
     this.targetPosition = new Vector3(position.x, position.y, position.z);
-    this.targetRotation = rotation.y;
+    this.targetRotation = rotation;
   }
 
   public getPosition(): Vector3 {
