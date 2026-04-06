@@ -87,40 +87,47 @@ export class VoxelCharacter {
     this.head.position.y = 24 * s; // On top of torso
     this.head.parent = this.root;
     this.head.material = bodyMat;
+    this.disableGlow(this.head);
 
     // Eyes (glowing rectangles on front of head)
     const leftEye = MeshBuilder.CreateBox(`leftEye_${id}`, { width: 2 * s, height: 1 * s, depth: 0.5 * s }, this.scene);
     leftEye.position = new Vector3(-1.5 * s, 1 * s, 4.1 * s);
     leftEye.parent = this.head;
     leftEye.material = eyeMat;
+    this.disableGlow(leftEye);
 
     const rightEye = MeshBuilder.CreateBox(`rightEye_${id}`, { width: 2 * s, height: 1 * s, depth: 0.5 * s }, this.scene);
     rightEye.position = new Vector3(1.5 * s, 1 * s, 4.1 * s);
     rightEye.parent = this.head;
     rightEye.material = eyeMat;
+    this.disableGlow(rightEye);
 
     // Hood accent (on top and sides of head)
     const hoodTop = MeshBuilder.CreateBox(`hoodTop_${id}`, { width: 8.2 * s, height: 1 * s, depth: 8.2 * s }, this.scene);
     hoodTop.position.y = 4 * s;
     hoodTop.parent = this.head;
     hoodTop.material = accentMat;
+    this.disableGlow(hoodTop);
 
     // TORSO (8x12x4) - center of body
     this.torso = MeshBuilder.CreateBox(`torso_${id}`, { width: 8 * s, height: 12 * s, depth: 4 * s }, this.scene);
     this.torso.position.y = 14 * s; // Above legs
     this.torso.parent = this.root;
     this.torso.material = bodyMat;
+    this.disableGlow(this.torso);
 
     // Hoodie accent stripes on torso
     const stripe1 = MeshBuilder.CreateBox(`stripe1_${id}`, { width: 0.5 * s, height: 12 * s, depth: 4.2 * s }, this.scene);
     stripe1.position.x = -3 * s;
     stripe1.parent = this.torso;
     stripe1.material = accentMat;
+    this.disableGlow(stripe1);
 
     const stripe2 = MeshBuilder.CreateBox(`stripe2_${id}`, { width: 0.5 * s, height: 12 * s, depth: 4.2 * s }, this.scene);
     stripe2.position.x = 3 * s;
     stripe2.parent = this.torso;
     stripe2.material = accentMat;
+    this.disableGlow(stripe2);
 
     // LEFT ARM with pivot at shoulder
     this.leftArmPivot = new TransformNode(`leftArmPivot_${id}`, this.scene);
@@ -131,12 +138,14 @@ export class VoxelCharacter {
     this.leftArm.position.y = -6 * s; // Offset from pivot
     this.leftArm.parent = this.leftArmPivot;
     this.leftArm.material = bodyMat;
+    this.disableGlow(this.leftArm);
 
     // Arm accent
     const leftArmAccent = MeshBuilder.CreateBox(`leftArmAccent_${id}`, { width: 4.2 * s, height: 1 * s, depth: 4.2 * s }, this.scene);
     leftArmAccent.position.y = -5.5 * s;
     leftArmAccent.parent = this.leftArm;
     leftArmAccent.material = accentMat;
+    this.disableGlow(leftArmAccent);
 
     // RIGHT ARM with pivot at shoulder
     this.rightArmPivot = new TransformNode(`rightArmPivot_${id}`, this.scene);
@@ -147,12 +156,14 @@ export class VoxelCharacter {
     this.rightArm.position.y = -6 * s;
     this.rightArm.parent = this.rightArmPivot;
     this.rightArm.material = bodyMat;
+    this.disableGlow(this.rightArm);
 
     // Arm accent
     const rightArmAccent = MeshBuilder.CreateBox(`rightArmAccent_${id}`, { width: 4.2 * s, height: 1 * s, depth: 4.2 * s }, this.scene);
     rightArmAccent.position.y = -5.5 * s;
     rightArmAccent.parent = this.rightArm;
     rightArmAccent.material = accentMat;
+    this.disableGlow(rightArmAccent);
 
     // LEFT LEG with pivot at hip
     this.leftLegPivot = new TransformNode(`leftLegPivot_${id}`, this.scene);
@@ -163,12 +174,14 @@ export class VoxelCharacter {
     this.leftLeg.position.y = -6 * s;
     this.leftLeg.parent = this.leftLegPivot;
     this.leftLeg.material = bodyMat;
+    this.disableGlow(this.leftLeg);
 
     // Leg accent (shoe/boot glow)
     const leftShoe = MeshBuilder.CreateBox(`leftShoe_${id}`, { width: 4.2 * s, height: 2 * s, depth: 4.2 * s }, this.scene);
     leftShoe.position.y = -5 * s;
     leftShoe.parent = this.leftLeg;
     leftShoe.material = accentMat;
+    this.disableGlow(leftShoe);
 
     // RIGHT LEG with pivot at hip
     this.rightLegPivot = new TransformNode(`rightLegPivot_${id}`, this.scene);
@@ -179,12 +192,14 @@ export class VoxelCharacter {
     this.rightLeg.position.y = -6 * s;
     this.rightLeg.parent = this.rightLegPivot;
     this.rightLeg.material = bodyMat;
+    this.disableGlow(this.rightLeg);
 
     // Leg accent (shoe/boot glow)
     const rightShoe = MeshBuilder.CreateBox(`rightShoe_${id}`, { width: 4.2 * s, height: 2 * s, depth: 4.2 * s }, this.scene);
     rightShoe.position.y = -5 * s;
     rightShoe.parent = this.rightLeg;
     rightShoe.material = accentMat;
+    this.disableGlow(rightShoe);
   }
 
   private createMaterial(name: string, color: Color3, emissiveIntensity: number): StandardMaterial {
@@ -193,6 +208,11 @@ export class VoxelCharacter {
     mat.emissiveColor = color.scale(emissiveIntensity);
     mat.specularColor = new Color3(0.2, 0.2, 0.2);
     return mat;
+  }
+
+  private disableGlow(mesh: Mesh): void {
+    // Explicitly disable GlowLayer rendering for this mesh
+    mesh.metadata = { ...mesh.metadata, enableGlow: false };
   }
 
   private updateAnimation(): void {
