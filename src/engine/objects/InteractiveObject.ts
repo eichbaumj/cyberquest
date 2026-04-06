@@ -165,6 +165,10 @@ export abstract class InteractiveObject {
    */
   protected updateGlow(isNear: boolean, isCompleted: boolean): void {
     this.meshes.forEach((mesh) => {
+      // Enable glow layer rendering for this mesh when nearby or completed
+      if (!mesh.metadata) mesh.metadata = {};
+      mesh.metadata.enableGlow = isNear || isCompleted;
+
       if (mesh.material instanceof StandardMaterial) {
         if (isCompleted) {
           // Green glow for completed

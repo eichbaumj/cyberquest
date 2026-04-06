@@ -213,6 +213,21 @@ export class GameEngine {
     this.glowLayer = new GlowLayer('glowLayer', this.scene);
     this.glowLayer.intensity = 0.8;
     this.glowLayer.blurKernelSize = 32;
+
+    // By default, exclude all meshes - only include ones we explicitly add
+    this.glowLayer.customEmissiveColorSelector = (mesh, subMesh, material, result) => {
+      // Only glow for meshes that have been explicitly tagged
+      if (mesh.metadata?.enableGlow && material.emissiveColor) {
+        result.set(
+          material.emissiveColor.r,
+          material.emissiveColor.g,
+          material.emissiveColor.b,
+          1.0
+        );
+      } else {
+        result.set(0, 0, 0, 0);
+      }
+    };
   }
 
   private createGridLines(): void {
