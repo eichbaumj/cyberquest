@@ -155,19 +155,29 @@ function GameContent() {
   // Fetch questions when userId and sessionId are available
   useEffect(() => {
     const fetchQuestions = async () => {
-      if (!sessionId || !userId) return;
+      if (!sessionId || !userId) {
+        console.log('Missing sessionId or userId:', { sessionId, userId });
+        return;
+      }
 
       const supabase = supabaseRef.current;
 
       // Get session with question bank
-      const { data: session } = await supabase
+      const { data: session, error: sessionError } = await supabase
         .from('game_sessions')
-        .select('question_bank_id')
+        .select('id, question_bank_id, title')
         .eq('id', sessionId)
         .single();
 
+      console.log('Session query result:', { session, sessionError });
+
+      if (sessionError) {
+        console.error('Error fetching session:', sessionError);
+        return;
+      }
+
       if (!session?.question_bank_id) {
-        console.log('No question bank linked to session');
+        console.log('No question bank linked to session:', session);
         return;
       }
 
@@ -176,6 +186,8 @@ function GameContent() {
         .from('questions')
         .select('*')
         .eq('bank_id', session.question_bank_id);
+
+      console.log('Questions query result:', { questionsData, error, bankId: session.question_bank_id });
 
       if (error) {
         console.error('Error fetching questions:', error);
@@ -197,7 +209,9 @@ function GameContent() {
         // Shuffle with player ID as seed for consistent order per player
         const shuffled = shuffleWithSeed(gameQuestions, userId);
         setQuestions(shuffled);
-        console.log(`Loaded ${shuffled.length} questions for player`);
+        console.log(`Loaded ${shuffled.length} questions for player:`, shuffled);
+      } else {
+        console.log('No questions found in bank');
       }
     };
 

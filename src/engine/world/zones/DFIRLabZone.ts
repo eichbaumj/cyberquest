@@ -418,6 +418,14 @@ export class DFIRLabZone {
    * Spawn terminals based on questions
    */
   public spawnTerminalsForQuestions(questions: Question[]): void {
+    console.log('DFIRLabZone.spawnTerminalsForQuestions called with', questions.length, 'questions');
+
+    // Don't spawn if terminals already exist
+    if (this.terminals.length > 0) {
+      console.log('Terminals already spawned, skipping');
+      return;
+    }
+
     const positions = [
       new Vector3(-6, 0.85, 4),
       new Vector3(0, 0.85, 4),
@@ -425,6 +433,7 @@ export class DFIRLabZone {
     ];
 
     const count = Math.min(questions.length, positions.length);
+    console.log('Spawning', count, 'terminals');
 
     for (let i = 0; i < count; i++) {
       const terminal = new ComputerTerminal({
@@ -439,6 +448,7 @@ export class DFIRLabZone {
 
       this.terminals.push(terminal);
       this.interactionManager.registerObject(terminal);
+      console.log(`Terminal ${i} spawned at`, positions[i].toString(), 'with question:', questions[i].id);
     }
   }
 

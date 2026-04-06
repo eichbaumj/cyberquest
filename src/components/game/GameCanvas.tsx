@@ -129,7 +129,13 @@ export function GameCanvas({
 
   // Spawn terminals when questions change
   useEffect(() => {
+    console.log('GameCanvas questions effect:', {
+      hasZone: !!zoneRef.current,
+      questionsCount: questions.length,
+      questions
+    });
     if (zoneRef.current && questions.length > 0) {
+      console.log('Spawning terminals for questions:', questions.length);
       zoneRef.current.spawnTerminalsForQuestions(questions);
     }
   }, [questions]);
