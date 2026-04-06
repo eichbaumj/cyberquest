@@ -21,8 +21,8 @@ export interface Question {
   id: string;
   type: 'multiple_choice' | 'true_false' | 'terminal_command';
   content: string;
-  options?: string[];
-  correct_answer: string | string[];
+  options?: string[] | { id: string; text: string }[];
+  correct_answer: string | string[] | boolean;
   difficulty: number;
   time_limit?: number;
 }

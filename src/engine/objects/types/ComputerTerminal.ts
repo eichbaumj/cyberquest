@@ -170,10 +170,39 @@ export class ComputerTerminal extends InteractiveObject {
   }
 
   /**
-   * Show completed state
+   * Show completed state with green styling
    */
   public showCompletedState(): void {
-    this.setScreenText('> CHALLENGE COMPLETE\n> ACCESS GRANTED\n\n[SOLVED]');
+    if (!this.screenTexture) return;
+
+    const ctx = this.screenTexture.getContext() as CanvasRenderingContext2D;
+    const width = 512;
+    const height = 256;
+
+    // Clear with dark green background
+    ctx.fillStyle = '#0a2015';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw completion text in bright green
+    ctx.font = 'bold 22px monospace';
+    ctx.fillStyle = '#00ff88';
+    ctx.fillText('> CHALLENGE COMPLETE', 15, 35);
+    ctx.fillText('> ACCESS GRANTED', 15, 65);
+
+    ctx.font = 'bold 28px monospace';
+    ctx.fillStyle = '#00ff44';
+    ctx.fillText('[SOLVED]', 15, 120);
+
+    // Add a checkmark
+    ctx.font = 'bold 48px sans-serif';
+    ctx.fillText('\u2713', 420, 140);
+
+    this.screenTexture.update();
+
+    // Change screen emissive to green
+    if (this.screenMaterial) {
+      this.screenMaterial.emissiveColor = new Color3(0, 0.4, 0.2);
+    }
   }
 
   /**
