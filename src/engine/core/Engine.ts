@@ -217,11 +217,13 @@ export class GameEngine {
     // By default, exclude all meshes - only include ones we explicitly add
     this.glowLayer.customEmissiveColorSelector = (mesh, subMesh, material, result) => {
       // Only glow for meshes that have been explicitly tagged
-      if (mesh.metadata?.enableGlow && material.emissiveColor) {
+      // Cast to StandardMaterial to access emissiveColor
+      const stdMat = material as StandardMaterial;
+      if (mesh.metadata?.enableGlow && stdMat.emissiveColor) {
         result.set(
-          material.emissiveColor.r,
-          material.emissiveColor.g,
-          material.emissiveColor.b,
+          stdMat.emissiveColor.r,
+          stdMat.emissiveColor.g,
+          stdMat.emissiveColor.b,
           1.0
         );
       } else {
