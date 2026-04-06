@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { RemotePlayerData } from '@/engine/player/RemotePlayer';
 import { Question, InteractiveObject } from '@/engine/objects/InteractiveObject';
+import { MapData, RoomSize } from '@/engine/objects/ObjectDefinition';
 import { QuestionModal } from '@/components/game/QuestionModal';
 import { shuffleWithSeed } from '@/lib/utils/shuffle';
 import { validateAnswer } from '@/lib/utils/validation';
@@ -43,6 +44,10 @@ function GameContent() {
   const [correctCount, setCorrectCount] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+
+  // Map state
+  const [mapData, setMapData] = useState<MapData | null>(null);
+  const [roomSize, setRoomSize] = useState<RoomSize>('medium');
 
   const supabaseRef = useRef(createClient());
   const lastUpdateRef = useRef(0);
@@ -162,12 +167,12 @@ function GameContent() {
 
       const supabase = supabaseRef.current;
 
-      // Get session with question bank
+      // Get session with question bank and map
       const { data: session, error: sessionError } = await supabase
         .from('game_sessions')
-        .select('id, question_bank_id, title')
+        .select('id, question_bank_id, map_id, title')
         .eq('id', sessionId)
-        .single();
+        .single() as { data: any; error: any };
 
       console.log('Session query result:', { session, sessionError });
 
@@ -181,11 +186,26 @@ function GameContent() {
         return;
       }
 
+      // Load map if session has one
+      if (session.map_id) {
+        const { data: mapResult, error: mapError } = await supabase
+          .from('maps')
+          .select('map_data, room_size')
+          .eq('id', session.map_id)
+          .single() as { data: any; error: any };
+
+        if (!mapError && mapResult) {
+          setMapData(mapResult.map_data as MapData);
+          setRoomSize(mapResult.room_size as RoomSize);
+          console.log('Loaded custom map:', mapResult.room_size);
+        }
+      }
+
       // Fetch questions from bank
       const { data: questionsData, error } = await supabase
         .from('questions')
         .select('*')
-        .eq('bank_id', session.question_bank_id);
+        .eq('bank_id', session.question_bank_id) as { data: any[] | null; error: any };
 
       console.log('Questions query result:', { questionsData, error, bankId: session.question_bank_id });
 
@@ -196,7 +216,7 @@ function GameContent() {
 
       if (questionsData && questionsData.length > 0) {
         // Transform to game question format
-        const gameQuestions: Question[] = questionsData.map((q) => ({
+        const gameQuestions: Question[] = questionsData.map((q: any) => ({
           id: q.id,
           type: q.type as 'multiple_choice' | 'true_false' | 'terminal_command',
           content: typeof q.content === 'string' ? q.content : (q.content as any)?.text || JSON.stringify(q.content),
@@ -334,6 +354,8 @@ function GameContent() {
         onPlayerMove={handlePlayerMove}
         remotePlayers={remotePlayers}
         questions={questions}
+        mapData={mapData}
+        roomSize={roomSize}
         onInteraction={handleInteraction}
         onCorrectAnswer={(count) => {
           console.log(`Correct answers: ${count}`);

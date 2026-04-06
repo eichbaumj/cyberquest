@@ -12,16 +12,24 @@ interface QuestionBank {
   questions: { count: number }[];
 }
 
+interface GameMap {
+  id: string;
+  name: string;
+  room_size: string;
+}
+
 export default function NewSessionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
+  const [maps, setMaps] = useState<GameMap[]>([]);
   const [loadingBanks, setLoadingBanks] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
     questionBankId: '',
+    mapId: '',
     gameMode: 'race' as 'race' | 'practice',
     maxPlayers: 15,
     questionCount: 10,
@@ -50,6 +58,15 @@ export default function NewSessionPage() {
         .order('created_at', { ascending: false }) as { data: any[] | null };
 
       setQuestionBanks(data || []);
+
+      // Load maps
+      const { data: mapsData } = await supabase
+        .from('maps')
+        .select('id, name, room_size')
+        .eq('created_by', user.id)
+        .order('updated_at', { ascending: false });
+
+      setMaps(mapsData || []);
       setLoadingBanks(false);
     }
 
@@ -108,6 +125,7 @@ export default function NewSessionPage() {
       .insert({
         host_id: user.id,
         question_bank_id: formData.questionBankId,
+        map_id: formData.mapId || null,
         title: formData.title || 'Game Session',
         join_code: joinCode,
         status: 'lobby',
@@ -222,6 +240,74 @@ export default function NewSessionPage() {
                   {formData.questionBankId === bank.id && (
                     <span className="text-cyber-blue">✓</span>
                   )}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Map Selection */}
+        <div className="bg-cyber-dark/50 border border-border rounded-lg p-6 space-y-4">
+          <h2 className="font-semibold">Select Map (Optional)</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose a custom map or use the default DFIR Lab
+          </p>
+
+          {maps.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground mb-2">No custom maps yet</p>
+              <Link href="/dashboard/maps/builder" className="text-cyber-blue hover:underline">
+                Create your first map →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              <label
+                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${
+                  formData.mapId === ''
+                    ? 'border-cyber-blue bg-cyber-blue/10'
+                    : 'border-border hover:border-muted'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="map"
+                  value=""
+                  checked={formData.mapId === ''}
+                  onChange={() => setFormData(p => ({ ...p, mapId: '' }))}
+                  className="sr-only"
+                />
+                <div className="flex-1">
+                  <div className="font-medium">Default DFIR Lab</div>
+                  <div className="text-sm text-muted-foreground">30x20 room with basic setup</div>
+                </div>
+                {formData.mapId === '' && <span className="text-cyber-blue">✓</span>}
+              </label>
+
+              {maps.map((map) => (
+                <label
+                  key={map.id}
+                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${
+                    formData.mapId === map.id
+                      ? 'border-cyber-blue bg-cyber-blue/10'
+                      : 'border-border hover:border-muted'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="map"
+                    value={map.id}
+                    checked={formData.mapId === map.id}
+                    onChange={(e) => setFormData(p => ({ ...p, mapId: e.target.value }))}
+                    className="sr-only"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{map.name}</div>
+                    <div className="text-sm text-muted-foreground capitalize">
+                      {map.room_size} room
+                    </div>
+                  </div>
+                  {formData.mapId === map.id && <span className="text-cyber-blue">✓</span>}
                 </label>
               ))}
             </div>

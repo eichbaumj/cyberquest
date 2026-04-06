@@ -5,6 +5,7 @@ import {
   KeyboardEventTypes,
 } from '@babylonjs/core';
 import { VoxelCharacter, AnimationState, CYBER_COLORS } from './VoxelCharacter';
+import { AABB } from '../objects/ObjectDefinition';
 
 export interface PlayerState {
   position: Vector3;
@@ -26,6 +27,7 @@ export interface PlayerOptions {
   startPosition?: Vector3;
   colorIndex?: number;
   worldBounds?: WorldBounds;
+  furnitureColliders?: AABB[];
   onMove?: (position: Vector3, rotation: number, animState: AnimationState) => void;
 }
 
@@ -35,6 +37,7 @@ export class LocalPlayer {
   private character: VoxelCharacter;
   private onMove?: (position: Vector3, rotation: number, animState: AnimationState) => void;
   private worldBounds: WorldBounds;
+  private furnitureColliders: AABB[] = [];
 
   // Movement state
   private keys: Map<string, boolean> = new Map();
@@ -57,6 +60,7 @@ export class LocalPlayer {
     this.scene = options.scene;
     this.camera = options.camera;
     this.onMove = options.onMove;
+    this.furnitureColliders = options.furnitureColliders || [];
     // Default world bounds (DFIR Lab is 30x20)
     this.worldBounds = options.worldBounds || {
       minX: -14,
@@ -177,6 +181,12 @@ export class LocalPlayer {
       this.character.setPosition(position);
     }
 
+    // Furniture collision (slide along surfaces)
+    const adjustedPos = this.checkFurnitureCollision(position);
+    if (!adjustedPos.equals(position)) {
+      this.character.setPosition(adjustedPos);
+    }
+
     // Rotate character to face movement direction
     if (moveDirection.length() > 0.1) {
       const targetRotation = Math.atan2(moveDirection.x, moveDirection.z);
@@ -271,6 +281,64 @@ export class LocalPlayer {
 
   public getCharacter(): VoxelCharacter {
     return this.character;
+  }
+
+  public setFurnitureColliders(colliders: AABB[]): void {
+    this.furnitureColliders = colliders;
+  }
+
+  private checkFurnitureCollision(position: Vector3): Vector3 {
+    const r = this.PLAYER_RADIUS;
+    const result = position.clone();
+
+    for (const box of this.furnitureColliders) {
+      // Check if player circle overlaps with AABB
+      const closestX = Math.max(box.minX, Math.min(result.x, box.maxX));
+      const closestZ = Math.max(box.minZ, Math.min(result.z, box.maxZ));
+
+      const distX = result.x - closestX;
+      const distZ = result.z - closestZ;
+      const distSq = distX * distX + distZ * distZ;
+
+      if (distSq < r * r && distSq > 0) {
+        // Collision detected - push player out
+        const dist = Math.sqrt(distSq);
+        const overlap = r - dist;
+        const pushX = (distX / dist) * overlap;
+        const pushZ = (distZ / dist) * overlap;
+
+        result.x += pushX;
+        result.z += pushZ;
+
+        // Zero velocity in push direction
+        if (Math.abs(pushX) > 0.001) this.velocity.x = 0;
+        if (Math.abs(pushZ) > 0.001) this.velocity.z = 0;
+      } else if (distSq === 0) {
+        // Player center is inside box - push to nearest edge
+        const toMinX = result.x - box.minX;
+        const toMaxX = box.maxX - result.x;
+        const toMinZ = result.z - box.minZ;
+        const toMaxZ = box.maxZ - result.z;
+
+        const minDist = Math.min(toMinX, toMaxX, toMinZ, toMaxZ);
+
+        if (minDist === toMinX) {
+          result.x = box.minX - r;
+          this.velocity.x = 0;
+        } else if (minDist === toMaxX) {
+          result.x = box.maxX + r;
+          this.velocity.x = 0;
+        } else if (minDist === toMinZ) {
+          result.z = box.minZ - r;
+          this.velocity.z = 0;
+        } else {
+          result.z = box.maxZ + r;
+          this.velocity.z = 0;
+        }
+      }
+    }
+
+    return result;
   }
 
   public dispose(): void {

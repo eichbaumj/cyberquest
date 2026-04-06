@@ -28,6 +28,7 @@ export function DashboardNav({ profile }: DashboardNavProps) {
     ? [
         { href: '/dashboard', label: 'Dashboard', icon: '📊' },
         { href: '/dashboard/questions', label: 'Questions', icon: '❓' },
+        { href: '/dashboard/maps', label: 'Maps', icon: '🗺️' },
         { href: '/dashboard/sessions', label: 'Game Sessions', icon: '🎮' },
         { href: '/dashboard/courses', label: 'Courses', icon: '📚' },
         { href: '/dashboard/analytics', label: 'Analytics', icon: '📈' },

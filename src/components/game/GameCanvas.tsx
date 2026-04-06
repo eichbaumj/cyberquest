@@ -7,14 +7,18 @@ import { LocalPlayer } from '@/engine/player/LocalPlayer';
 import { RemotePlayer, RemotePlayerData } from '@/engine/player/RemotePlayer';
 import { AnimationState } from '@/engine/player/VoxelCharacter';
 import { DFIRLabZone } from '@/engine/world/zones/DFIRLabZone';
+import { DynamicZone } from '@/engine/world/DynamicZone';
 import { InteractionManager } from '@/engine/objects/InteractionManager';
 import { InteractiveObject, Question } from '@/engine/objects/InteractiveObject';
+import { MapData, RoomSize } from '@/engine/objects/ObjectDefinition';
 
 interface GameCanvasProps {
   onReady?: () => void;
   onPlayerMove?: (position: { x: number; y: number; z: number }, rotation: number, animState: string) => void;
   remotePlayers?: RemotePlayerData[];
   questions?: Question[];
+  mapData?: MapData | null;
+  roomSize?: RoomSize;
   onInteraction?: (object: InteractiveObject) => void;
   onCorrectAnswer?: (count: number) => void;
 }
@@ -24,6 +28,8 @@ export function GameCanvas({
   onPlayerMove,
   remotePlayers = [],
   questions = [],
+  mapData,
+  roomSize = 'medium',
   onInteraction,
   onCorrectAnswer,
 }: GameCanvasProps) {
@@ -32,6 +38,7 @@ export function GameCanvas({
   const localPlayerRef = useRef<LocalPlayer | null>(null);
   const remotePlayersRef = useRef<Map<string, RemotePlayer>>(new Map());
   const zoneRef = useRef<DFIRLabZone | null>(null);
+  const dynamicZoneRef = useRef<DynamicZone | null>(null);
   const interactionManagerRef = useRef<InteractionManager | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,15 +85,31 @@ export function GameCanvas({
         onInteraction?.(object);
       });
 
-      // Create DFIR Lab zone
-      zoneRef.current = new DFIRLabZone(scene, interactionManagerRef.current, {
-        requiredCorrectForUnlock: 3,
-        evidenceRoomCode: '7734',
-      });
+      // Create zone based on whether custom mapData is provided
+      let spawnPoint: Vector3;
+      let zoneBounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+      let furnitureColliders: { minX: number; maxX: number; minZ: number; maxZ: number }[] = [];
 
-      // Get spawn point and bounds from zone
-      const spawnPoint = zoneRef.current.getSpawnPoint();
-      const zoneBounds = zoneRef.current.getBounds();
+      if (mapData) {
+        // Use DynamicZone for custom maps
+        dynamicZoneRef.current = new DynamicZone(
+          scene,
+          mapData,
+          roomSize,
+          interactionManagerRef.current
+        );
+        spawnPoint = dynamicZoneRef.current.getSpawnPoint();
+        zoneBounds = dynamicZoneRef.current.getBounds();
+        furnitureColliders = dynamicZoneRef.current.getCollisionBoxes();
+      } else {
+        // Use default DFIR Lab zone
+        zoneRef.current = new DFIRLabZone(scene, interactionManagerRef.current, {
+          requiredCorrectForUnlock: 3,
+          evidenceRoomCode: '7734',
+        });
+        spawnPoint = zoneRef.current.getSpawnPoint();
+        zoneBounds = zoneRef.current.getBounds();
+      }
 
       // Create local player at zone spawn point with world bounds from zone
       localPlayerRef.current = new LocalPlayer({
@@ -94,6 +117,7 @@ export function GameCanvas({
         camera: engine.getCamera(),
         startPosition: spawnPoint,
         worldBounds: zoneBounds,
+        furnitureColliders: furnitureColliders,
         onMove: (position: Vector3, rotation: number, animState: AnimationState) => {
           onPlayerMove?.(
             { x: position.x, y: position.y, z: position.z },
@@ -119,13 +143,14 @@ export function GameCanvas({
     // Cleanup
     return () => {
       zoneRef.current?.dispose();
+      dynamicZoneRef.current?.dispose();
       interactionManagerRef.current?.dispose();
       localPlayerRef.current?.dispose();
       engineRef.current?.dispose();
       remotePlayersRef.current.forEach((player) => player.dispose());
       remotePlayersRef.current.clear();
     };
-  }, []);
+  }, [mapData, roomSize]);
 
   // Spawn terminals when questions change
   useEffect(() => {
