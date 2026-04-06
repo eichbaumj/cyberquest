@@ -139,8 +139,9 @@ export class DynamicZone {
     const worldX = placedObj.gridX - dims.width / 2 + 0.5;
     const worldZ = placedObj.gridZ - dims.depth / 2 + 0.5;
 
-    // Y position depends on whether it's floor or surface placed
-    const worldY = def.canPlaceOnFloor ? 0 : 0.75; // 0.75 is desk height
+    // Y position depends on whether it's on a surface or floor
+    // onSurface=true means it's on a desk (Y=0.75), otherwise floor (Y=0)
+    const worldY = placedObj.onSurface ? 0.75 : 0;
 
     const position = new Vector3(worldX, worldY, worldZ);
     const mesh = ObjectRegistry.createObject(
@@ -154,14 +155,16 @@ export class DynamicZone {
       mesh.parent = this.root;
       this.spawnedObjects.push(mesh);
 
-      // Add collision box if applicable
-      const collisionBox = ObjectRegistry.getCollisionBox(
-        placedObj.type,
-        position,
-        placedObj.rotation
-      );
-      if (collisionBox) {
-        this.collisionBoxes.push(collisionBox);
+      // Add collision box if applicable (only for floor items)
+      if (!placedObj.onSurface) {
+        const collisionBox = ObjectRegistry.getCollisionBox(
+          placedObj.type,
+          position,
+          placedObj.rotation
+        );
+        if (collisionBox) {
+          this.collisionBoxes.push(collisionBox);
+        }
       }
     }
   }

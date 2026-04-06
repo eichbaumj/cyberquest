@@ -15,6 +15,7 @@ export interface PlacedObject {
   gridX: number;
   gridZ: number;
   rotation: 0 | 90 | 180 | 270;
+  onSurface?: boolean; // True if placed on a desk/table
   properties?: Record<string, unknown>;
 }
 

@@ -15,6 +15,7 @@ interface PlacedObject {
   gridX: number;
   gridZ: number;
   rotation: Rotation;
+  onSurface?: boolean; // True if placed on a desk/table
 }
 
 interface ObjectDef {
@@ -24,6 +25,8 @@ interface ObjectDef {
   gridWidth: number;
   gridDepth: number;
   canPlaceOnFloor: boolean;
+  canPlaceOnSurface: boolean; // Can be placed on desks/tables
+  hasSurface: boolean; // Has a surface others can be placed on (desks, tables)
   icon: string;
   collisionEnabled: boolean;
 }
@@ -35,24 +38,24 @@ const ROOM_SIZES: Record<RoomSize, { width: number; depth: number; label: string
 };
 
 const OBJECT_DEFINITIONS: ObjectDef[] = [
-  // Furniture
-  { type: 'desk', displayName: 'Desk', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, icon: '🪑', collisionEnabled: true },
-  { type: 'desk_large', displayName: 'L-Desk', category: 'furniture', gridWidth: 3, gridDepth: 2, canPlaceOnFloor: true, icon: '🔲', collisionEnabled: true },
-  { type: 'table', displayName: 'Table', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, icon: '🪑', collisionEnabled: true },
-  { type: 'chair', displayName: 'Chair', category: 'furniture', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: true, icon: '🪑', collisionEnabled: true },
-  { type: 'cabinet', displayName: 'Cabinet', category: 'furniture', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: true, icon: '🗄️', collisionEnabled: true },
-  { type: 'shelf', displayName: 'Bookshelf', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, icon: '📚', collisionEnabled: true },
-  { type: 'whiteboard', displayName: 'Whiteboard', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, icon: '📋', collisionEnabled: false },
-  // Electronics
-  { type: 'computer', displayName: 'Desktop PC', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '🖥️', collisionEnabled: false },
-  { type: 'laptop', displayName: 'Laptop', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '💻', collisionEnabled: false },
-  { type: 'phone', displayName: 'Cell Phone', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '📱', collisionEnabled: false },
-  { type: 'keyboard', displayName: 'Keyboard', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '⌨️', collisionEnabled: false },
-  { type: 'mouse', displayName: 'Mouse', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '🖱️', collisionEnabled: false },
-  // Evidence
-  { type: 'thumbdrive', displayName: 'USB Drive', category: 'evidence', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '💾', collisionEnabled: false },
-  { type: 'harddrive', displayName: 'Hard Drive', category: 'evidence', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, icon: '💿', collisionEnabled: false },
-  { type: 'server_rack', displayName: 'Server Rack', category: 'evidence', gridWidth: 1, gridDepth: 2, canPlaceOnFloor: true, icon: '🖧', collisionEnabled: true },
+  // Furniture (floor items with surfaces)
+  { type: 'desk', displayName: 'Desk', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: true, icon: '🪑', collisionEnabled: true },
+  { type: 'desk_large', displayName: 'L-Desk', category: 'furniture', gridWidth: 3, gridDepth: 2, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: true, icon: '🔲', collisionEnabled: true },
+  { type: 'table', displayName: 'Table', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: true, icon: '🪑', collisionEnabled: true },
+  { type: 'chair', displayName: 'Chair', category: 'furniture', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: false, icon: '🪑', collisionEnabled: true },
+  { type: 'cabinet', displayName: 'Cabinet', category: 'furniture', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: true, icon: '🗄️', collisionEnabled: true },
+  { type: 'shelf', displayName: 'Bookshelf', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: false, icon: '📚', collisionEnabled: true },
+  { type: 'whiteboard', displayName: 'Whiteboard', category: 'furniture', gridWidth: 2, gridDepth: 1, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: false, icon: '📋', collisionEnabled: false },
+  // Electronics (surface items)
+  { type: 'computer', displayName: 'Desktop PC', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '🖥️', collisionEnabled: false },
+  { type: 'laptop', displayName: 'Laptop', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '💻', collisionEnabled: false },
+  { type: 'phone', displayName: 'Cell Phone', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '📱', collisionEnabled: false },
+  { type: 'keyboard', displayName: 'Keyboard', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '⌨️', collisionEnabled: false },
+  { type: 'mouse', displayName: 'Mouse', category: 'electronics', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '🖱️', collisionEnabled: false },
+  // Evidence (surface items)
+  { type: 'thumbdrive', displayName: 'USB Drive', category: 'evidence', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '💾', collisionEnabled: false },
+  { type: 'harddrive', displayName: 'Hard Drive', category: 'evidence', gridWidth: 1, gridDepth: 1, canPlaceOnFloor: false, canPlaceOnSurface: true, hasSurface: false, icon: '💿', collisionEnabled: false },
+  { type: 'server_rack', displayName: 'Server Rack', category: 'evidence', gridWidth: 1, gridDepth: 2, canPlaceOnFloor: true, canPlaceOnSurface: false, hasSurface: false, icon: '🖧', collisionEnabled: true },
 ];
 
 function MapBuilderContent() {
@@ -142,8 +145,12 @@ function MapBuilderContent() {
     ctx.lineWidth = 3;
     ctx.strokeRect(offsetX, offsetY, dims.width * cellSize, dims.depth * cellSize);
 
-    // Draw placed objects
-    placedObjects.forEach((obj) => {
+    // Draw placed objects - floor items first, then surface items
+    const floorObjects = placedObjects.filter((o) => !o.onSurface);
+    const surfaceObjects = placedObjects.filter((o) => o.onSurface);
+
+    // Draw floor objects
+    floorObjects.forEach((obj) => {
       const def = OBJECT_DEFINITIONS.find((d) => d.type === obj.type);
       if (!def) return;
 
@@ -154,9 +161,14 @@ function MapBuilderContent() {
       const x = offsetX + obj.gridX * cellSize;
       const y = offsetY + obj.gridZ * cellSize;
 
-      // Object background
+      // Object background - green for floor items with surfaces, darker for others
       const isSelected = selectedPlacedId === obj.id;
-      ctx.fillStyle = isSelected ? 'rgba(0, 240, 255, 0.3)' : 'rgba(0, 200, 100, 0.2)';
+      const hasSurface = def.hasSurface;
+      ctx.fillStyle = isSelected
+        ? 'rgba(0, 240, 255, 0.3)'
+        : hasSurface
+        ? 'rgba(0, 200, 100, 0.3)'
+        : 'rgba(0, 200, 100, 0.15)';
       ctx.fillRect(x, y, w * cellSize, d * cellSize);
 
       // Object border
@@ -170,6 +182,40 @@ function MapBuilderContent() {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffffff';
       ctx.fillText(def.icon, x + (w * cellSize) / 2, y + (d * cellSize) / 2);
+    });
+
+    // Draw surface objects (on top, smaller with offset)
+    surfaceObjects.forEach((obj) => {
+      const def = OBJECT_DEFINITIONS.find((d) => d.type === obj.type);
+      if (!def) return;
+
+      const isRotated = obj.rotation === 90 || obj.rotation === 270;
+      const w = isRotated ? def.gridDepth : def.gridWidth;
+      const d = isRotated ? def.gridWidth : def.gridDepth;
+
+      // Draw slightly smaller and offset to show it's on surface
+      const padding = cellSize * 0.15;
+      const x = offsetX + obj.gridX * cellSize + padding;
+      const y = offsetY + obj.gridZ * cellSize + padding;
+      const drawW = w * cellSize - padding * 2;
+      const drawD = d * cellSize - padding * 2;
+
+      // Object background - yellow/orange for surface items
+      const isSelected = selectedPlacedId === obj.id;
+      ctx.fillStyle = isSelected ? 'rgba(0, 240, 255, 0.4)' : 'rgba(255, 180, 0, 0.4)';
+      ctx.fillRect(x, y, drawW, drawD);
+
+      // Object border
+      ctx.strokeStyle = isSelected ? '#00f0ff' : '#ffb400';
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.strokeRect(x, y, drawW, drawD);
+
+      // Object icon (smaller)
+      ctx.font = `${cellSize * 0.4}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(def.icon, x + drawW / 2, y + drawD / 2);
     });
 
     // Draw hover preview
@@ -231,13 +277,41 @@ function MapBuilderContent() {
     [roomSize]
   );
 
+  // Helper to check if a cell has a surface (desk/table) at floor level
+  const getSurfaceAtCell = useCallback(
+    (cellX: number, cellZ: number): PlacedObject | null => {
+      for (const obj of placedObjects) {
+        if (obj.onSurface) continue; // Skip items already on surfaces
+
+        const def = OBJECT_DEFINITIONS.find((d) => d.type === obj.type);
+        if (!def || !def.hasSurface) continue;
+
+        const isRotated = obj.rotation === 90 || obj.rotation === 270;
+        const w = isRotated ? def.gridDepth : def.gridWidth;
+        const d = isRotated ? def.gridWidth : def.gridDepth;
+
+        if (
+          cellX >= obj.gridX &&
+          cellX < obj.gridX + w &&
+          cellZ >= obj.gridZ &&
+          cellZ < obj.gridZ + d
+        ) {
+          return obj;
+        }
+      }
+      return null;
+    },
+    [placedObjects]
+  );
+
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const cell = getCellFromEvent(e);
       if (!cell) return;
 
-      // Check if clicked on existing object
-      const clickedObj = placedObjects.find((obj) => {
+      // Check if clicked on existing object (prefer surface items over floor items)
+      const clickedSurfaceObj = placedObjects.find((obj) => {
+        if (!obj.onSurface) return false;
         const def = OBJECT_DEFINITIONS.find((d) => d.type === obj.type);
         if (!def) return false;
 
@@ -253,32 +327,83 @@ function MapBuilderContent() {
         );
       });
 
-      if (clickedObj) {
-        setSelectedPlacedId(clickedObj.id);
+      if (clickedSurfaceObj) {
+        setSelectedPlacedId(clickedSurfaceObj.id);
         setSelectedObjectType(null);
         return;
       }
+
+      const clickedFloorObj = placedObjects.find((obj) => {
+        if (obj.onSurface) return false;
+        const def = OBJECT_DEFINITIONS.find((d) => d.type === obj.type);
+        if (!def) return false;
+
+        const isRotated = obj.rotation === 90 || obj.rotation === 270;
+        const w = isRotated ? def.gridDepth : def.gridWidth;
+        const d = isRotated ? def.gridWidth : def.gridDepth;
+
+        return (
+          cell.x >= obj.gridX &&
+          cell.x < obj.gridX + w &&
+          cell.z >= obj.gridZ &&
+          cell.z < obj.gridZ + d
+        );
+      });
 
       // Place new object
       if (selectedObjectType) {
         const def = OBJECT_DEFINITIONS.find((d) => d.type === selectedObjectType);
         if (!def) return;
 
-        const newObj: PlacedObject = {
-          id: crypto.randomUUID(),
-          type: selectedObjectType,
-          gridX: cell.x,
-          gridZ: cell.z,
-          rotation: currentRotation,
-        };
+        // Check if this is a surface item that needs a desk/table
+        if (def.canPlaceOnSurface && !def.canPlaceOnFloor) {
+          const surfaceObj = getSurfaceAtCell(cell.x, cell.z);
+          if (!surfaceObj) {
+            // No surface here - can't place
+            alert('This item must be placed on a desk or table!');
+            return;
+          }
 
-        setPlacedObjects([...placedObjects, newObj]);
-        setSelectedPlacedId(null);
+          // Place on surface
+          const newObj: PlacedObject = {
+            id: crypto.randomUUID(),
+            type: selectedObjectType,
+            gridX: cell.x,
+            gridZ: cell.z,
+            rotation: currentRotation,
+            onSurface: true,
+          };
+
+          setPlacedObjects([...placedObjects, newObj]);
+          setSelectedPlacedId(null);
+        } else if (def.canPlaceOnFloor) {
+          // Check if there's already a floor item here (not on surface)
+          if (clickedFloorObj) {
+            setSelectedPlacedId(clickedFloorObj.id);
+            setSelectedObjectType(null);
+            return;
+          }
+
+          // Place on floor
+          const newObj: PlacedObject = {
+            id: crypto.randomUUID(),
+            type: selectedObjectType,
+            gridX: cell.x,
+            gridZ: cell.z,
+            rotation: currentRotation,
+            onSurface: false,
+          };
+
+          setPlacedObjects([...placedObjects, newObj]);
+          setSelectedPlacedId(null);
+        }
+      } else if (clickedFloorObj) {
+        setSelectedPlacedId(clickedFloorObj.id);
       } else {
         setSelectedPlacedId(null);
       }
     },
-    [getCellFromEvent, placedObjects, selectedObjectType, currentRotation]
+    [getCellFromEvent, placedObjects, selectedObjectType, currentRotation, getSurfaceAtCell]
   );
 
   const handleCanvasRightClick = useCallback(

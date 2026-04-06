@@ -436,19 +436,22 @@ export class DFIRLabZone {
     console.log('Spawning', count, 'terminals');
 
     for (let i = 0; i < count; i++) {
+      const question = questions[i];
       const terminal = new ComputerTerminal({
         id: `terminal_${i}`,
         scene: this.scene,
         position: positions[i],
         rotation: 0,
+        screenText: `> CHALLENGE ${i + 1}\n> READY`,
       });
 
-      terminal.bindQuestion(questions[i]);
-      terminal.setScreenText(`> CHALLENGE ${i + 1}\n> READY`);
+      if (question) {
+        terminal.bindQuestion(question);
+      }
 
       this.terminals.push(terminal);
       this.interactionManager.registerObject(terminal);
-      console.log(`Terminal ${i} spawned at`, positions[i].toString(), 'with question:', questions[i].id);
+      console.log(`Terminal ${i} spawned at`, positions[i].toString(), 'with question:', question?.id);
     }
   }
 

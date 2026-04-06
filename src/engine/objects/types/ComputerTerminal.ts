@@ -150,8 +150,9 @@ export class ComputerTerminal extends InteractiveObject {
     ctx.font = 'bold 20px monospace';
     ctx.fillStyle = '#00f0ff';
 
-    // Split text into lines
-    const lines = text.split('\n');
+    // Split text into lines (handle undefined/null)
+    const safeText = text || '> READY_';
+    const lines = safeText.split('\n');
     const lineHeight = 24;
     const startY = 30;
 
